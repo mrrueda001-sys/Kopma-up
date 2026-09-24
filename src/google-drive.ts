@@ -498,7 +498,7 @@ export const deleteDriveFile = async (accessToken: string, fileId: string): Prom
 };
 
 // Ekspos ke window untuk integrasi langsung dengan Alpine.js
-(window as any).GoogleDriveService = {
+export const GoogleDriveService = {
   SCOPES,
   signIn: signInWithGoogleDrive,
   signOut: signOutGoogleDrive,
@@ -519,3 +519,12 @@ export const deleteDriveFile = async (accessToken: string, fileId: string): Prom
   FOLDER_NAME,
   MASTER_DB_FILE_NAME
 };
+
+if (typeof window !== 'undefined') {
+  (window as any).GoogleDriveService = GoogleDriveService;
+  try {
+    window.dispatchEvent(new CustomEvent('googledrive:ready', { detail: GoogleDriveService }));
+  } catch (_) {}
+}
+
+export default GoogleDriveService;

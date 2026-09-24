@@ -104,7 +104,7 @@
                     </label>
                 </div>
                 <h1 class="text-2xl font-bold text-slate-900" x-text="settings.storeName">Tokoku POS</h1>
-                <p class="text-sm text-slate-500">Silakan login untuk masuk ke sistem kasir online</p>
+                <p class="text-sm text-slate-500">Silakan login untuk masuk ke sistem kasir</p>
             </div>
 
             <form @submit.prevent="handleLogin()" class="space-y-4">
@@ -134,6 +134,10 @@
                     <span>Masuk ke Sistem</span><i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </button>
             </form>
+
+            <div class="text-center pt-1 border-t border-slate-100">
+                <p class="text-xs text-slate-400">Akun bawaan: <span class="font-mono font-medium text-slate-600">admin / admin</span> atau <span class="font-mono font-medium text-slate-600">kasir / kasir</span></p>
+            </div>
         </div>
     </div>
 
@@ -158,32 +162,24 @@
                         <p class="text-[11px] text-slate-400 hidden sm:block">Sistem POS & Manajemen Toko</p>
                     </div>
                     
-                    <!-- Google Drive Single Data Center Indicator -->
+                    <!-- Cloud Real-Time Indicator (Langsung Aktif & Otomatis) -->
                     <div class="flex items-center space-x-1.5 ml-1 sm:ml-2">
-                        <template x-if="driveToken">
-                            <div class="flex items-center space-x-1.5">
-                                <span class="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold px-2.5 py-1 rounded-full flex items-center space-x-1.5 shadow-2xs" :title="'Pusat Data Google Drive: Terhubung (' + (driveUser?.email || '') + ')'">
-                                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                    <span class="hidden sm:inline">Drive Aktif</span>
-                                    <span class="sm:hidden">Drive</span>
-                                </span>
-                                <button type="button" @click="syncWithDriveMaster(true)" class="p-1.5 bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 rounded-lg transition" title="Sinkronkan Pusat Data dengan Google Drive">
-                                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5" :class="isDriveSyncing ? 'animate-spin' : ''"></i>
-                                </button>
-                            </div>
-                        </template>
-                        <template x-if="!driveToken">
-                            <button type="button" @click="connectGoogleDrive()" class="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-[11px] font-semibold px-2.5 py-1 rounded-full flex items-center space-x-1.5 shadow-2xs transition active:scale-95" title="Klik untuk menghubungkan ke Google Drive">
-                                <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-                                <span>Hubungkan Drive</span>
-                            </button>
-                        </template>
-
-                        <!-- Multi-Device Cloud Button -->
-                        <button type="button" @click="openMultiDeviceModal()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[11px] font-semibold px-2.5 py-1 rounded-full flex items-center space-x-1.5 shadow-2xs transition active:scale-95" title="Buka kasir di HP / Tablet / Device lain (Otomatis Terhubung Cloud)">
-                            <i data-lucide="smartphone" class="w-3.5 h-3.5"></i>
-                            <span class="hidden sm:inline">Multi-Device</span>
+                        <span class="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold px-2.5 py-1 rounded-full flex items-center space-x-1.5 shadow-2xs" title="Cloud Otomatis Aktif: Semua transaksi & stok tersinkron real-time antar perangkat">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span class="hidden sm:inline">Cloud Terhubung</span>
+                            <span class="sm:hidden">Cloud</span>
+                        </span>
+                        
+                        <button type="button" @click="initServerSync(true)" class="p-1.5 bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 rounded-lg transition" title="Sinkronkan data dengan Cloud sekarang">
+                            <i data-lucide="refresh-cw" class="w-3.5 h-3.5" :class="isServerSyncing ? 'animate-spin' : ''"></i>
                         </button>
+
+                        <template x-if="driveToken">
+                            <span class="hidden sm:flex items-center gap-1 text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full" title="Google Drive terhubung sebagai cadangan arsip">
+                                <i data-lucide="hard-drive" class="w-3 h-3 text-emerald-600"></i>
+                                <span>Drive ON</span>
+                            </span>
+                        </template>
                     </div>
                 </div>
 
@@ -895,24 +891,94 @@
                  x-transition:enter-end="tab-fade-slide-end" 
                  class="p-4 sm:p-6 md:p-8 space-y-6 max-w-4xl mx-auto w-full pb-28 md:pb-32" x-cloak>
                 <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
-                    <h3 class="font-bold text-slate-800 text-lg border-b border-slate-100 pb-4">Pengaturan Toko & Struk</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div><label class="block text-sm font-medium text-slate-700 mb-1">Nama Toko</label><input type="text" x-model="settings.storeName" class="w-full border rounded-xl px-4 py-2.5 text-sm"></div>
-                        <div><label class="block text-sm font-medium text-slate-700 mb-1">Nomor Telepon Toko</label><input type="text" x-model="settings.phone" class="w-full border rounded-xl px-4 py-2.5 text-sm"></div>
-                        <div class="md:col-span-2"><label class="block text-sm font-medium text-slate-700 mb-1">Alamat Toko</label><textarea x-model="settings.address" rows="2" class="w-full border rounded-xl px-4 py-2.5 text-sm"></textarea></div>
-                        <div><label class="block text-sm font-medium text-slate-700 mb-1">Pesan Footer Struk</label><input type="text" x-model="settings.receiptNote" class="w-full border rounded-xl px-4 py-2.5 text-sm"></div>
-                        <div><label class="block text-sm font-medium text-slate-700 mb-1">Rekening Transfer Toko</label><input type="text" x-model="settings.bankAccount" placeholder="BCA 1234567890 a/n KOPMA" class="w-full border rounded-xl px-4 py-2.5 text-sm"></div>
-                        <div class="md:col-span-2 flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
-                            <div>
-                                <h4 class="text-sm font-semibold text-slate-800">Efek Suara Audio Kasir</h4>
-                                <p class="text-xs text-slate-400">Bunyi 'beep' saat scan barcode/tambah produk & 'chime' saat transaksi selesai.</p>
-                            </div>
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" x-model="settings.soundEnabled" class="sr-only peer">
-                                <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-                            </label>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+                                <i data-lucide="store" class="w-5 h-5 app-text"></i>
+                                <span>Pengaturan Toko & Struk</span>
+                            </h3>
+                            <p class="text-xs text-slate-500 mt-0.5">Kelola identitas toko, nomor kontak, rekening bank, serta catatan footer struk kasir.</p>
                         </div>
+                        <button type="button" @click="saveSettings()" :disabled="isSavingSettings" class="px-4 py-2.5 app-primary app-primary-hover text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center justify-center gap-2 active:scale-95 shrink-0" title="Simpan pengaturan toko dan struk sekarang">
+                            <i data-lucide="save" class="w-4 h-4" x-show="!isSavingSettings"></i>
+                            <div x-show="isSavingSettings" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            <span x-text="isSavingSettings ? 'Menyimpan...' : 'Simpan Pengaturan'"></span>
+                        </button>
                     </div>
+
+                    <form @submit.prevent="saveSettings()" class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Nama Toko</label>
+                                <div class="relative">
+                                    <i data-lucide="store" class="w-4 h-4 absolute left-3.5 top-3 text-slate-400"></i>
+                                    <input type="text" x-model="settings.storeName" required placeholder="Contoh: KOPMA Store" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Nomor Telepon Toko</label>
+                                <div class="relative">
+                                    <i data-lucide="phone" class="w-4 h-4 absolute left-3.5 top-3 text-slate-400"></i>
+                                    <input type="text" x-model="settings.phone" placeholder="Contoh: 081234567890" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                </div>
+                            </div>
+
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Alamat Toko (Dicetak di Bagian Atas Struk)</label>
+                                <div class="relative">
+                                    <i data-lucide="map-pin" class="w-4 h-4 absolute left-3.5 top-3 text-slate-400"></i>
+                                    <textarea x-model="settings.address" rows="2" placeholder="Alamat lengkap toko yang tercetak di bagian atas struk" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Pesan Footer Struk</label>
+                                <div class="relative">
+                                    <i data-lucide="file-text" class="w-4 h-4 absolute left-3.5 top-3 text-slate-400"></i>
+                                    <input type="text" x-model="settings.receiptNote" placeholder="Contoh: Terima kasih telah berbelanja di toko kami" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Rekening Bank / Info Transfer</label>
+                                <div class="relative">
+                                    <i data-lucide="credit-card" class="w-4 h-4 absolute left-3.5 top-3 text-slate-400"></i>
+                                    <input type="text" x-model="settings.bankAccount" placeholder="BCA 1234567890 a/n KOPMA" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                </div>
+                            </div>
+
+                            <div class="md:col-span-2 flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-200/70">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                                        <i data-lucide="volume-2" class="w-4 h-4"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-sm font-semibold text-slate-800">Efek Suara Audio Kasir</h4>
+                                        <p class="text-xs text-slate-400">Bunyi 'beep' saat scan barcode/tambah produk & 'chime' saat transaksi selesai.</p>
+                                    </div>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" x-model="settings.soundEnabled" class="sr-only peer">
+                                    <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Bar Aksi Tombol Simpan -->
+                        <div class="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                            <button type="button" @click="testReceiptPreview()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition flex items-center justify-center gap-2 active:scale-95" title="Coba cetak struk dengan format toko saat ini">
+                                <i data-lucide="printer" class="w-4 h-4 text-slate-500"></i>
+                                <span>Tes Cetak Format Struk</span>
+                            </button>
+
+                            <button type="submit" :disabled="isSavingSettings" class="px-6 py-2.5 app-primary app-primary-hover text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2 active:scale-95">
+                                <i data-lucide="check" class="w-4 h-4" x-show="!isSavingSettings"></i>
+                                <div x-show="isSavingSettings" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                <span x-text="isSavingSettings ? 'Menyimpan...' : 'Simpan Pengaturan Toko & Struk'"></span>
+                            </button>
+                        </div>
+                    </form>
                     
                     <div class="pt-6 border-t border-slate-100 space-y-4">
                         <div>
@@ -930,27 +996,24 @@
                         </div>
                     </div>
 
-                    <!-- PUSAT DATA TUNGGAL: GOOGLE DRIVE (SINGLE DATA CENTER) -->
+                    <!-- PUSAT DATA CLOUD TOKO (OTOMATIS & REAL-TIME MULTI-PERANGKAT) -->
                     <div class="pt-6 border-t border-slate-100 space-y-4">
                         <div class="flex items-center justify-between flex-wrap gap-2">
                             <div>
                                 <h4 class="font-bold text-slate-800 text-base flex items-center gap-2">
-                                    <svg class="w-5 h-5" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
-                                        <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44c-.8 1.4-1.2 2.95-1.2 4.5h27.5z" fill="#00ac47"/>
-                                        <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>
-                                        <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
-                                        <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
-                                        <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
-                                    </svg>
-                                    <span>Pusat Data Tunggal: Google Drive</span>
+                                    <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                                        <i data-lucide="cloud" class="w-5 h-5"></i>
+                                    </div>
+                                    <span>Pusat Data Cloud Toko (Otomatis & Real-Time)</span>
                                 </h4>
-                                <p class="text-xs text-slate-500 mt-0.5">Seluruh akses data toko (produk, stok, riwayat, transaksi) terpusat langsung dan eksklusif ke Google Drive tanpa kendala tabrakan data.</p>
+                                <p class="text-xs text-slate-500 mt-0.5">Sistem cloud kasir aktif otomatis. Semua perangkat (HP kasir, tablet, laptop) langsung terhubung dan tersinkronisasi tanpa perlu masukan apapun.</p>
                             </div>
-                            <span :class="driveToken ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-800 border border-amber-200'" class="text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5 shadow-2xs">
-                                <span class="w-2 h-2 rounded-full" :class="driveToken ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'"></span>
-                                <span x-text="driveToken ? 'Pusat Data Terhubung' : 'Belum Terhubung ke Drive'"></span>
-                            </span>
+                            <div class="flex items-center gap-2">
+                                <span class="bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5 shadow-2xs">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <span>Cloud Terhubung Otomatis</span>
+                                </span>
+                            </div>
                         </div>
 
                         <!-- Data Center Stats Summary -->
@@ -968,27 +1031,55 @@
                                 <p class="text-base font-bold text-emerald-700" x-text="transactions.length + ' nota'"></p>
                             </div>
                             <div class="p-3 bg-slate-50 rounded-xl border border-slate-200/70">
-                                <p class="text-[11px] text-slate-400 font-medium">Status Pusat Data</p>
-                                <p class="text-base font-bold" :class="driveToken ? 'text-emerald-700' : 'text-amber-600'" x-text="driveToken ? 'Eksklusif Drive' : 'Lokal (Siap Sync)'"></p>
+                                <p class="text-[11px] text-slate-400 font-medium">Status Sinkronisasi</p>
+                                <p class="text-base font-bold text-emerald-700" x-text="lastSyncTimeStr ? 'Tersinkron ' + lastSyncTimeStr : 'Real-time Aktif'"></p>
                             </div>
                         </div>
 
-                        <!-- STATE: Belum Terhubung -->
-                        <div x-show="!driveToken" class="p-5 bg-gradient-to-br from-blue-50/70 to-indigo-50/40 rounded-2xl border border-blue-100 space-y-3">
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                <div class="space-y-1 text-xs text-slate-600">
-                                    <p class="font-semibold text-slate-800 text-sm">Jadikan Google Drive Sebagai Satu-Satunya Pusat Data</p>
-                                    <p>Hubungkan akun Google Anda untuk menyimpan dan menyinkronkan seluruh database kasir ke folder <b>"Tokoku POS Cloud Backup"</b> secara otomatis tanpa kendala konflik data antar perangkat.</p>
-                                </div>
-                                <button type="button" @click="connectGoogleDrive()" :disabled="isDriveLoading" class="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 font-semibold rounded-xl text-xs border border-slate-300 transition flex items-center gap-2.5 shadow-sm active:scale-95 shrink-0">
-                                    <svg class="w-4 h-4" viewBox="0 0 48 48">
-                                        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
-                                        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
-                                        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
-                                        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
-                                    </svg>
-                                    <span x-text="isDriveLoading ? 'Menghubungkan...' : 'Hubungkan Google Drive'"></span>
+                        <!-- Bar Aksi Sinkronisasi Cloud -->
+                        <div class="p-4 bg-emerald-50/70 rounded-2xl border border-emerald-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="space-y-0.5">
+                                <p class="font-bold text-slate-800 text-sm flex items-center gap-1.5">
+                                    <i data-lucide="cloud" class="w-4 h-4 text-emerald-600"></i>
+                                    <span>Penyimpanan Cloud Terpusat</span>
+                                </p>
+                                <p class="text-xs text-slate-600">Data produk, transaksi, dan stok toko tersimpan aman serta diperbarui otomatis ke server cloud.</p>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <button type="button" @click="initServerSync(true)" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs active:scale-95">
+                                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5" :class="isServerSyncing ? 'animate-spin' : ''"></i>
+                                    <span>Sinkronkan Sekarang</span>
                                 </button>
+                            </div>
+                        </div>
+
+                        <!-- CADANGAN TAMBAHAN: GOOGLE DRIVE (OPSIONAL) -->
+                        <div class="p-4 bg-slate-50/80 rounded-2xl border border-slate-200 space-y-3 mt-4">
+                            <div class="flex items-center justify-between flex-wrap gap-2">
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-5 h-5 shrink-0" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
+                                        <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44c-.8 1.4-1.2 2.95-1.2 4.5h27.5z" fill="#00ac47"/>
+                                        <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>
+                                        <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
+                                        <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
+                                        <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
+                                    </svg>
+                                    <div>
+                                        <h5 class="text-xs font-bold text-slate-800">Cadangan Tambahan ke Akun Google Drive (Opsional)</h5>
+                                        <p class="text-[11px] text-slate-500">Hanya diperlukan jika Anda ingin menyimpan arsip ekstra ke Google Drive pribadi.</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <template x-if="!driveToken">
+                                        <button type="button" @click="connectGoogleDrive()" :disabled="isDriveLoading" class="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg border border-slate-300 transition flex items-center gap-1.5 shadow-2xs">
+                                            <span x-text="isDriveLoading ? 'Menghubungkan...' : 'Hubungkan Drive (Opsional)'"></span>
+                                        </button>
+                                    </template>
+                                    <template x-if="driveToken">
+                                        <span class="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Drive Terhubung</span>
+                                    </template>
+                                </div>
                             </div>
                         </div>
 
@@ -1022,10 +1113,10 @@
                                         <i data-lucide="cloud-upload" class="w-3.5 h-3.5" :class="isDriveUploading ? 'animate-bounce' : ''"></i>
                                         <span x-text="isDriveUploading ? 'Menyimpan...' : 'Buat Arsip Cadangan'"></span>
                                     </button>
-                                    <button type="button" @click="openGoogleDriveFolder()" class="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold border border-slate-200 transition flex items-center gap-1.5">
+                                    <a href="https://drive.google.com/drive/search?q=Tokoku%20POS%20Cloud%20Backup" target="_blank" rel="noopener noreferrer" class="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold border border-slate-200 transition flex items-center gap-1.5">
                                         <i data-lucide="external-link" class="w-3.5 h-3.5 text-slate-500"></i>
                                         <span>Folder Drive</span>
-                                    </button>
+                                    </a>
                                     <button type="button" @click="disconnectGoogleDrive()" class="px-3 py-2 text-rose-600 hover:bg-rose-50 rounded-xl text-xs font-medium transition">
                                         Putuskan
                                     </button>
@@ -1121,53 +1212,7 @@
                         </div>
                     </div>
 
-                    <!-- KONEKSI MULTI-PERANGKAT (MULTI-DEVICE CLOUD SYNC) -->
-                    <div class="pt-6 border-t border-slate-100 space-y-4">
-                        <div class="flex items-center justify-between flex-wrap gap-2">
-                            <div>
-                                <h4 class="font-bold text-slate-800 text-base flex items-center gap-2">
-                                    <i data-lucide="smartphone" class="w-5 h-5 text-indigo-600"></i>
-                                    <span>Koneksi Multi-Perangkat (Multi-Device Cloud)</span>
-                                </h4>
-                                <p class="text-xs text-slate-500 mt-0.5">Buka aplikasi kasir di HP, Tablet, iPad, atau Laptop kasir lain. Semua perangkat otomatis terhubung langsung ke Cloud & Google Drive yang sama secara real-time.</p>
-                            </div>
-                            <button type="button" @click="openMultiDeviceModal()" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm transition active:scale-95">
-                                <i data-lucide="qr-code" class="w-4 h-4"></i>
-                                <span>Buka QR Code & Link Kasir</span>
-                            </button>
-                        </div>
-                        
-                        <!-- Mini status grid -->
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <div class="p-3 bg-indigo-50/70 rounded-xl border border-indigo-100 flex items-start gap-2.5">
-                                <div class="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0 mt-0.5">
-                                    <i data-lucide="cloud" class="w-4 h-4"></i>
-                                </div>
-                                <div class="text-xs">
-                                    <p class="font-bold text-slate-800">Server Cloud Real-Time</p>
-                                    <p class="text-slate-500 text-[11px]">Semua perangkat yang membuka link otomatis saling bertukar data.</p>
-                                </div>
-                            </div>
-                            <div class="p-3 bg-emerald-50/70 rounded-xl border border-emerald-100 flex items-start gap-2.5">
-                                <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
-                                    <i data-lucide="shield-check" class="w-4 h-4"></i>
-                                </div>
-                                <div class="text-xs">
-                                    <p class="font-bold text-slate-800">Satu Pusat Data Google Drive</p>
-                                    <p class="text-slate-500 text-[11px]">Sesi Drive dibagikan ke server sehingga HP kasir langsung terhubung.</p>
-                                </div>
-                            </div>
-                            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200/70 flex items-start gap-2.5">
-                                <div class="w-7 h-7 rounded-lg bg-slate-200 text-slate-700 flex items-center justify-center shrink-0 mt-0.5">
-                                    <i data-lucide="users" class="w-4 h-4"></i>
-                                </div>
-                                <div class="text-xs">
-                                    <p class="font-bold text-slate-800">Banyak Kasir Bersamaan</p>
-                                    <p class="text-slate-500 text-[11px]">ID transaksi acak unik mencegah tabrakan data saat checkout berbarengan.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+
 
                     <div class="pt-4 border-t border-slate-100 space-y-4">
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100">
@@ -1723,103 +1768,7 @@
         </div>
     </div>
 
-    <!-- MULTI-DEVICE CLOUD CONNECTION MODAL -->
-    <div x-show="isMultiDeviceModalOpen" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4" x-cloak>
-        <div class="bg-white rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-5 max-h-[92vh] flex flex-col animate-gentle-fade">
-            <!-- Header -->
-            <div class="flex justify-between items-start border-b border-slate-100 pb-3">
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
-                        <i data-lucide="smartphone" class="w-5 h-5"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-bold text-slate-800 text-base sm:text-lg">Koneksi Multi-Perangkat (Cloud POS)</h3>
-                        <p class="text-xs text-slate-400">Gunakan kasir bersamaan di HP, Tablet, Laptop, atau Komputer lain.</p>
-                    </div>
-                </div>
-                <button @click="isMultiDeviceModalOpen = false" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
 
-            <div class="space-y-4 overflow-y-auto flex-1 pr-1 text-xs">
-                <!-- Status Koneksi Cloud -->
-                <div class="bg-gradient-to-br from-indigo-50/60 to-emerald-50/50 border border-indigo-100 rounded-2xl p-4 space-y-2.5">
-                    <div class="flex items-center justify-between">
-                        <span class="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
-                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                            <span>Status Cloud Multi-Perangkat</span>
-                        </span>
-                        <span class="bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full">Siap Terhubung</span>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-[11px]">
-                        <div class="bg-white/80 p-2 rounded-xl border border-indigo-50 flex items-center gap-2">
-                            <i data-lucide="server" class="w-4 h-4 text-indigo-600 shrink-0"></i>
-                            <div>
-                                <p class="text-slate-400 text-[10px]">Server Cloud</p>
-                                <p class="font-bold text-slate-700">Real-Time Aktif</p>
-                            </div>
-                        </div>
-                        <div class="bg-white/80 p-2 rounded-xl border border-indigo-50 flex items-center gap-2">
-                            <i data-lucide="hard-drive" class="w-4 h-4 text-emerald-600 shrink-0"></i>
-                            <div>
-                                <p class="text-slate-400 text-[10px]">Pusat Data Google Drive</p>
-                                <p class="font-bold" :class="driveToken ? 'text-emerald-700' : 'text-amber-600'" x-text="driveToken ? 'Terhubung Otomatis' : 'Standby Server'"></p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- QR Code & Link Kasir -->
-                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center space-y-3">
-                    <p class="font-bold text-slate-800">Scan QR Code dengan Kamera HP / Tablet:</p>
-                    <div class="w-48 h-48 mx-auto bg-white p-2.5 border-2 border-dashed border-indigo-300 rounded-2xl shadow-inner flex items-center justify-center">
-                        <img :src="'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(deviceAppUrl || window.location.origin)" 
-                             alt="QR Code Kasir Multi-Device" 
-                             class="w-full h-full object-contain rounded-lg">
-                    </div>
-                    <p class="text-[11px] text-slate-400">Atau buka tautan kasir berikut di browser Google Chrome / Safari HP:</p>
-                    <div class="flex items-center gap-2 max-w-md mx-auto">
-                        <input type="text" readonly :value="deviceAppUrl || window.location.origin" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-700 select-all">
-                        <button type="button" @click="copyDeviceLink()" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold shrink-0 shadow-sm transition flex items-center gap-1.5 active:scale-95">
-                            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
-                            <span x-text="copiedLink ? 'Tersalin!' : 'Salin'"></span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Cara Kerja Multi-Device -->
-                <div class="space-y-2 border-t border-slate-100 pt-3">
-                    <p class="font-bold text-slate-800 text-xs uppercase tracking-wider">Bagaimana Cara Kerjanya di Perangkat Lain?</p>
-                    <ol class="space-y-2 text-[11px] text-slate-600 list-decimal pl-4">
-                        <li>
-                            <strong class="text-slate-800">Buka link di HP/Tablet:</strong> Perangkat lain otomatis mengambil data produk, harga, dan stok dari Cloud Server.
-                        </li>
-                        <li>
-                            <strong class="text-slate-800">Login Kasir:</strong> Masuk dengan username <code class="bg-slate-100 px-1 py-0.5 rounded text-emerald-700 font-bold">kasir</code> (password: <code class="bg-slate-100 px-1 py-0.5 rounded text-emerald-700 font-bold">kasir</code>) atau akun Admin Anda.
-                        </li>
-                        <li>
-                            <strong class="text-slate-800">Pusat Data Google Drive Bersama:</strong> Sesi Google Drive yang sudah dihubungkan di perangkat ini otomatis dibagikan secara aman via Cloud ke HP kasir sehingga kasir tidak perlu login akun Google lagi!
-                        </li>
-                        <li>
-                            <strong class="text-slate-800">Bebas Konflik Transaksi:</strong> Semua nota kasir diberi nomor unik khusus. Saat kasir di HP A dan kasir di HP B bertransaksi di detik yang sama, kedua transaksi akan tersimpan rapi tanpa tertimpa.
-                        </li>
-                    </ol>
-                </div>
-            </div>
-
-            <!-- Footer -->
-            <div class="flex items-center justify-between pt-3 border-t border-slate-100">
-                <button type="button" @click="syncWithDriveMaster(true); initServerSync(true);" class="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold rounded-xl text-xs transition border border-emerald-200 flex items-center gap-1.5">
-                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5" :class="isDriveSyncing ? 'animate-spin' : ''"></i>
-                    <span>Sinkronkan Sekarang</span>
-                </button>
-                <button @click="isMultiDeviceModalOpen = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition">
-                    Tutup
-                </button>
-            </div>
-        </div>
-    </div>
 
     <!-- Confirm Modal -->
     <div x-show="confirmModal.show" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" x-cloak>
@@ -1859,7 +1808,10 @@
 
         function posApp() {
             return {
-                isLoggedIn: false, currentUser: { username: '', name: '', role: '', profileImage: '' }, loginForm: { username: '', password: '' }, showLoginPassword: false,
+                isLoggedIn: false, 
+                currentUser: { username: '', name: '', role: '', profileImage: '' }, 
+                loginForm: { username: '', password: '' }, 
+                showLoginPassword: false,
                 activeTab: 'dashboard', mobileMenuOpen: false,
                 tabs: [
                     { id: 'dashboard', name: 'Dashboard', icon: 'layout-dashboard', roles: ['admin','kasir'] },
@@ -1897,43 +1849,77 @@
                 isStockModalOpen: false, stockForm: { productId: '', type: 'IN', qty: 1, note: '' },
                 isUserModalOpen: false, userForm: {}, isDetailModalOpen: false, selectedTrx: null, isProfileModalOpen: false, profileTarget: 'dashboard',
                 isCompressingImage: false, isCompressingProfile: false, imageCompressionInfo: null,
-                isQrisModalOpen: false, isExportModalOpen: false,
-                isMultiDeviceModalOpen: false, deviceAppUrl: '', copiedLink: false, _serverPushTimeout: null,
+                isQrisModalOpen: false, isExportModalOpen: false, isSavingSettings: false,
+                _serverPushTimeout: null,
                 exportConfig: { period: 'current', format: 'transactions', delimiter: ',' },
 
-                openMultiDeviceModal() {
-                    this.deviceAppUrl = window.location.origin || window.location.href;
-                    this.isMultiDeviceModalOpen = true;
-                    this.refreshIcons();
-                },
-
-                copyDeviceLink() {
-                    const url = this.deviceAppUrl || window.location.origin || window.location.href;
-                    if (navigator.clipboard && navigator.clipboard.writeText) {
-                        navigator.clipboard.writeText(url).then(() => {
-                            this.copiedLink = true;
-                            this.showToast('Tautan kasir berhasil disalin!');
-                            setTimeout(() => this.copiedLink = false, 2500);
-                        }).catch(() => {
-                            this.showToast('Salin tautan: ' + url);
-                        });
-                    } else {
-                        this.showToast('Salin tautan: ' + url);
-                    }
+                async getDriveService(timeoutMs = 6000) {
+                    if (window.GoogleDriveService) return window.GoogleDriveService;
+                    return new Promise((resolve) => {
+                        let timer = null;
+                        const onReady = (e) => {
+                            cleanup();
+                            resolve(e.detail || window.GoogleDriveService || null);
+                        };
+                        const cleanup = () => {
+                            window.removeEventListener('googledrive:ready', onReady);
+                            if (timer) clearInterval(timer);
+                        };
+                        window.addEventListener('googledrive:ready', onReady, { once: true });
+                        const start = Date.now();
+                        timer = setInterval(() => {
+                            if (window.GoogleDriveService) {
+                                cleanup();
+                                resolve(window.GoogleDriveService);
+                            } else if (Date.now() - start > timeoutMs) {
+                                cleanup();
+                                resolve(null);
+                            }
+                        }, 80);
+                    });
                 },
 
                 async checkSharedDriveSession() {
-                    if (!this.driveToken && window.GoogleDriveService && typeof window.GoogleDriveService.fetchSessionFromServer === 'function') {
-                        try {
-                            const found = await window.GoogleDriveService.fetchSessionFromServer();
-                            if (found) {
-                                this.driveToken = window.GoogleDriveService.getAccessToken();
-                                this.driveUser = window.GoogleDriveService.getUser();
-                                await this.syncWithDriveMaster(false);
-                                await this.loadDriveFiles();
-                                this.refreshIcons();
+                    if (this.driveToken) return;
+                    const driveService = await this.getDriveService(4000);
+                    if (!driveService || typeof driveService.fetchSessionFromServer !== 'function') return;
+                    try {
+                        const found = await driveService.fetchSessionFromServer();
+                        if (found) {
+                            this.driveToken = driveService.getAccessToken();
+                            this.driveUser = driveService.getUser();
+                            await this.syncWithDriveMaster(false);
+                            await this.loadDriveFiles();
+                            this.refreshIcons();
+                        }
+                    } catch (_) {}
+                },
+
+                async initGoogleDriveIntegration() {
+                    const driveService = await this.getDriveService(8000);
+                    if (!driveService) {
+                        return;
+                    }
+
+                    if (typeof driveService.onAuthChange === 'function') {
+                        driveService.onAuthChange((user, token) => {
+                            this.driveUser = user;
+                            this.driveToken = token;
+                            if (user && token) {
+                                this.syncWithDriveMaster(false);
+                                this.loadDriveFiles();
+                            } else {
+                                this.driveFiles = [];
                             }
-                        } catch (_) {}
+                            this.refreshIcons();
+                        });
+                    }
+
+                    if (this.driveToken) {
+                        await this.syncWithDriveMaster(false);
+                        await this.loadDriveFiles();
+                    } else {
+                        await this.checkSharedDriveSession();
                     }
                 },
 
@@ -1972,13 +1958,24 @@
                     }, 10000);
                     if (!this.settings.theme) this.settings.theme = 'emerald';
                     this.applyTheme();
+                    // Cek sesi login aktif dari sessionStorage (login wajib dengan username dan password)
                     try {
                         const s = JSON.parse(sessionStorage.getItem('pos_session') || 'null');
                         const u = s && this.users.find(x => x.username === s.username);
-                        if (u) { this.currentUser = {...u}; this.isLoggedIn = true; if (u.role !== 'admin' && !['dashboard','kasir','riwayat'].includes(this.activeTab)) this.activeTab = 'dashboard'; }
-                    } catch (_) {}
+                        if (u) {
+                            this.currentUser = { ...u };
+                            this.isLoggedIn = true;
+                            if (u.role !== 'admin' && !['dashboard','kasir','riwayat'].includes(this.activeTab)) this.activeTab = 'dashboard';
+                        } else {
+                            this.isLoggedIn = false;
+                            this.currentUser = { username: '', name: '', role: '', profileImage: '' };
+                        }
+                    } catch (_) {
+                        this.isLoggedIn = false;
+                        this.currentUser = { username: '', name: '', role: '', profileImage: '' };
+                    }
 
-                    // Inisialisasi Google Drive Sebagai Pusat Data Utama
+                    // Inisialisasi Google Drive (jika ada sesi sebelumnya)
                     const savedDriveToken = localStorage.getItem('pos_gdrive_access_token');
                     if (savedDriveToken) {
                         this.driveToken = savedDriveToken;
@@ -1988,54 +1985,39 @@
                         } catch (_) {}
                     }
 
-                    // Cek apakah ada sesi Google Drive bersama yang aktif dari perangkat lain (Cloud Drive Sharing)
-                    this.checkSharedDriveSession();
+                    // Inisialisasi integrasi dan sinkronisasi Google Drive secara aman (opsional di latar belakang)
+                    this.initGoogleDriveIntegration();
 
-                    if (window.GoogleDriveService) {
-                        window.GoogleDriveService.onAuthChange((user, token) => {
-                            this.driveUser = user;
-                            this.driveToken = token;
-                            if (user && token) {
-                                this.syncWithDriveMaster(false);
-                                this.loadDriveFiles();
-                            } else {
-                                this.driveFiles = [];
-                            }
-                        });
-                    }
-
-                    if (this.driveToken) {
-                        this.syncWithDriveMaster(false);
-                        this.loadDriveFiles();
-                    }
-
-                    // Sinkronisasi berkala Pusat Data Drive & Cek Sesi Multi-Perangkat (setiap 15 detik & saat tab aktif)
+                    // Sinkronisasi berkala Pusat Data Drive & Cek Sesi Multi-Perangkat (setiap 20 detik)
                     setInterval(() => {
                         if (this.driveToken && !this.isDriveSyncing) {
                             this.pollDriveMaster();
                         } else if (!this.driveToken) {
                             this.checkSharedDriveSession();
                         }
-                    }, 15000);
-                    window.addEventListener('focus', () => {
-                        if (this.driveToken && !this.isDriveSyncing) {
-                            this.pollDriveMaster();
-                        } else if (!this.driveToken) {
-                            this.checkSharedDriveSession();
-                        }
-                    });
+                    }, 20000);
 
-                    // Sinkronisasi lokal server latar belakang
-                    this.initServerSync();
+                    // Sinkronisasi Cloud Server Utama: Langsung terhubung & sinkron otomatis real-time (setiap 3.5 detik)
+                    this.initServerSync(false);
                     setInterval(() => {
                         if (!this.isServerSyncing) {
                             this.initServerSync(false);
                         }
-                    }, 8000);
+                    }, 3500);
                     setTimeout(() => this.autoMigrateBase64Images(), 1500);
 
-                    window.addEventListener('online', () => this.showToast('Koneksi internet aktif.'));
-                    window.addEventListener('offline', () => this.showToast('Offline: transaksi tetap disimpan di perangkat.'));
+                    window.addEventListener('focus', () => {
+                        this.initServerSync(false);
+                        if (this.driveToken && !this.isDriveSyncing) {
+                            this.pollDriveMaster();
+                        }
+                    });
+
+                    window.addEventListener('online', () => {
+                        this.initServerSync(false);
+                        this.showToast('Koneksi internet aktif. Cloud otomatis tersinkron.');
+                    });
+                    window.addEventListener('offline', () => this.showToast('Mode offline: transaksi tetap tersimpan di perangkat dan akan sinkron saat online.'));
                     window.addEventListener('keydown', (e) => {
                         if (e.key === 'F2') {
                             e.preventDefault();
@@ -2064,7 +2046,6 @@
                     this.$watch('isProfileModalOpen', () => this.refreshIcons());
                     this.$watch('isQrisModalOpen', () => this.refreshIcons());
                     this.$watch('isExportModalOpen', () => this.refreshIcons());
-                    this.$watch('isMultiDeviceModalOpen', () => this.refreshIcons());
                     this.refreshIcons();
                 },
 
@@ -2626,6 +2607,7 @@
                     this.isLoggedIn = false;
                     this.currentUser = { username: '', name: '', role: '', profileImage: '' };
                     sessionStorage.removeItem('pos_session');
+                    localStorage.removeItem('pos_session');
                     this.activeTab = 'dashboard';
                     this.refreshIcons();
                 },
@@ -2788,6 +2770,7 @@
                     
                     this.receiptData = newTrx; 
                     this.saveLocalStorage(); 
+                    this.pushFullStateToServer();
                     this.playSound('success');
                     this.showToast('Transaksi berhasil disimpan!');
                     setTimeout(() => window.print(), 300); 
@@ -3191,10 +3174,12 @@
                 },
 
                 async pushToDriveMaster(showToastNotification = false) {
-                    if (!this.driveToken && window.GoogleDriveService) {
-                        this.driveToken = window.GoogleDriveService.getAccessToken();
+                    const driveService = await this.getDriveService();
+                    if (!driveService) return;
+                    if (!this.driveToken) {
+                        this.driveToken = driveService.getAccessToken();
                     }
-                    if (!this.driveToken || !window.GoogleDriveService) return;
+                    if (!this.driveToken) return;
                     this.isDriveSyncing = true;
                     try {
                         const payload = {
@@ -3212,7 +3197,7 @@
                             settings: this.settings,
                             users: this.users
                         };
-                        const res = await window.GoogleDriveService.saveMasterDb(this.driveToken, payload);
+                        const res = await driveService.saveMasterDb(this.driveToken, payload);
                         this.lastDriveSyncTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
                         if (res && res.modifiedTime) {
                             this.lastDriveModifiedTime = res.modifiedTime;
@@ -3236,13 +3221,15 @@
                 },
 
                 async syncWithDriveMaster(showToastNotification = false) {
-                    if (!this.driveToken && window.GoogleDriveService) {
-                        this.driveToken = window.GoogleDriveService.getAccessToken();
+                    const driveService = await this.getDriveService();
+                    if (!driveService) return;
+                    if (!this.driveToken) {
+                        this.driveToken = driveService.getAccessToken();
                     }
-                    if (!this.driveToken || !window.GoogleDriveService) return;
+                    if (!this.driveToken) return;
                     this.isDriveSyncing = true;
                     try {
-                        const remoteDb = await window.GoogleDriveService.fetchMasterDb(this.driveToken);
+                        const remoteDb = await driveService.fetchMasterDb(this.driveToken);
                         if (remoteDb && Array.isArray(remoteDb.products)) {
                             this.products = remoteDb.products;
                             if (Array.isArray(remoteDb.categories)) this.categories = remoteDb.categories;
@@ -3289,9 +3276,11 @@
                 },
 
                 async pollDriveMaster() {
-                    if (!this.driveToken || !window.GoogleDriveService || this.isDriveSyncing) return;
+                    if (!this.driveToken || this.isDriveSyncing) return;
+                    const driveService = await this.getDriveService();
+                    if (!driveService) return;
                     try {
-                        const meta = await window.GoogleDriveService.getMasterFileMeta(this.driveToken);
+                        const meta = await driveService.getMasterFileMeta(this.driveToken);
                         if (meta && meta.modifiedTime && this.lastDriveModifiedTime) {
                             if (new Date(meta.modifiedTime).getTime() > new Date(this.lastDriveModifiedTime).getTime() + 1000) {
                                 await this.syncWithDriveMaster(false);
@@ -3302,16 +3291,17 @@
 
                 async connectGoogleDrive() {
                     try {
-                        if (!window.GoogleDriveService) {
-                            this.showToast('Layanan Google Drive belum siap dimuat.');
+                        const driveService = await this.getDriveService();
+                        if (!driveService) {
+                            this.showToast('Layanan Google Drive belum siap dimuat. Silakan tunggu sebentar.');
                             return;
                         }
                         this.isDriveLoading = true;
-                        const res = await window.GoogleDriveService.signIn();
+                        const res = await driveService.signIn();
                         this.driveUser = res.user;
                         this.driveToken = res.accessToken;
-                        if (window.GoogleDriveService.syncSessionToServer) {
-                            await window.GoogleDriveService.syncSessionToServer();
+                        if (driveService.syncSessionToServer) {
+                            await driveService.syncSessionToServer();
                         }
                         this.showToast(`Pusat Data Drive Aktif: ${res.user.email} (Tersinkron ke Semua Perangkat)`);
                         await this.syncWithDriveMaster(false);
@@ -3329,8 +3319,9 @@
                 async disconnectGoogleDrive() {
                     this.openConfirm('Putuskan Akun Google Drive?', 'Aplikasi tidak lagi menggunakan Google Drive sebagai Pusat Data sampai Anda menghubungkannya kembali.', async () => {
                         try {
-                            if (window.GoogleDriveService) {
-                                await window.GoogleDriveService.signOut();
+                            const driveService = await this.getDriveService();
+                            if (driveService) {
+                                await driveService.signOut();
                             }
                             this.driveUser = null;
                             this.driveToken = null;
@@ -3344,14 +3335,18 @@
                 },
 
                 async loadDriveFiles() {
-                    if (!this.driveToken && window.GoogleDriveService) {
-                        this.driveToken = window.GoogleDriveService.getAccessToken();
+                    const driveService = await this.getDriveService(4000);
+                    if (!driveService) {
+                        return;
+                    }
+                    if (!this.driveToken) {
+                        this.driveToken = driveService.getAccessToken();
                     }
                     if (!this.driveToken) return;
                     this.isDriveLoading = true;
                     try {
-                        const files = await window.GoogleDriveService.listFiles(this.driveToken);
-                        this.driveFiles = files;
+                        const files = await driveService.listFiles(this.driveToken);
+                        this.driveFiles = Array.isArray(files) ? files : [];
                         this.refreshIcons();
                     } catch (err) {
                         console.error('Failed to list drive files:', err);
@@ -3361,10 +3356,16 @@
                         }
                     } finally {
                         this.isDriveLoading = false;
+                        this.refreshIcons();
                     }
                 },
 
                 async backupToGoogleDrive() {
+                    const driveService = await this.getDriveService();
+                    if (!driveService) {
+                        this.showToast('Layanan Google Drive belum siap dimuat.');
+                        return;
+                    }
                     if (!this.driveToken) {
                         await this.connectGoogleDrive();
                         if (!this.driveToken) return;
@@ -3385,7 +3386,7 @@
                             settings: this.settings,
                             users: this.users
                         };
-                        const uploaded = await window.GoogleDriveService.uploadBackupSnapshot(
+                        const uploaded = await driveService.uploadBackupSnapshot(
                             this.driveToken,
                             backupData,
                             this.settings.storeName
@@ -3409,7 +3410,9 @@
                         async () => {
                             this.isDriveLoading = true;
                             try {
-                                const data = await window.GoogleDriveService.downloadContent(this.driveToken, file.id);
+                                const driveService = await this.getDriveService();
+                                if (!driveService) throw new Error('Layanan Google Drive belum siap');
+                                const data = await driveService.downloadContent(this.driveToken, file.id);
                                 if (!data || !Array.isArray(data.products)) {
                                     throw new Error('Format file cadangan tidak valid.');
                                 }
@@ -3445,7 +3448,9 @@
                         async () => {
                             this.isDriveLoading = true;
                             try {
-                                const ok = await window.GoogleDriveService.deleteFile(this.driveToken, file.id);
+                                const driveService = await this.getDriveService();
+                                if (!driveService) throw new Error('Layanan Google Drive belum siap');
+                                const ok = await driveService.deleteFile(this.driveToken, file.id);
                                 if (ok) {
                                     this.showToast('File berhasil dihapus dari Google Drive.');
                                     await this.loadDriveFiles();
@@ -3462,7 +3467,13 @@
                 },
 
                 openGoogleDriveFolder() {
-                    window.open('https://drive.google.com/drive/search?q=Tokoku%20POS%20Cloud%20Backup', '_blank');
+                    const link = document.createElement('a');
+                    link.href = 'https://drive.google.com/drive/search?q=Tokoku%20POS%20Cloud%20Backup';
+                    link.target = '_blank';
+                    link.rel = 'noopener noreferrer';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
                 },
 
                 // --- SISTEM EKSPOR CSV / EXCEL PROFESIONAL ---
@@ -4000,10 +4011,39 @@
                     document.documentElement.style.setProperty('--app-primary-dark', t.dark);
                     document.documentElement.style.setProperty('--app-soft', t.soft);
                 },
-                saveSettings() {
+                async saveSettings() {
+                    this.isSavingSettings = true;
                     this.saveLocalStorage();
+                    try {
+                        await this.pushFullStateToServer();
+                    } catch (_) {}
                     this.syncToGas('settings', 'store', this.settings);
-                    this.showToast('Pengaturan disimpan.');
+                    if (this.driveToken) this.scheduleDriveSync(200);
+                    this.playSound('success');
+                    this.showToast('Pengaturan toko & struk berhasil disimpan!');
+                    setTimeout(() => {
+                        this.isSavingSettings = false;
+                        this.refreshIcons();
+                    }, 400);
+                },
+                testReceiptPreview() {
+                    const sampleTrx = {
+                        id: 'TRX-SAMPLE',
+                        date: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+                        cashier: this.currentUser?.name || 'Administrator',
+                        customerName: 'Pelanggan Uji Coba',
+                        paymentMethod: 'Tunai',
+                        items: [
+                            { name: 'Contoh Produk 1', qty: 2, sellPrice: 15000 },
+                            { name: 'Contoh Produk 2', qty: 1, sellPrice: 20000 }
+                        ],
+                        subtotal: 50000,
+                        discount: 0,
+                        total: 50000,
+                        cash: 50000,
+                        change: 0
+                    };
+                    this.printReceipt(sampleTrx);
                 }
             }
         }
