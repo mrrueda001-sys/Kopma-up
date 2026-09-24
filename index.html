@@ -1,0 +1,2274 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Kasir Online & Manajemen Toko</title>
+    <meta name="description" content="Aplikasi Kasir Online & Manajemen Toko dengan sinkronisasi Google Sheets, manajemen stok, laporan penjualan, dan cetak struk.">
+    <meta property="og:title" content="Aplikasi Kasir Online & Manajemen Toko">
+    <meta property="og:description" content="Aplikasi Kasir Online & Manajemen Toko dengan sinkronisasi Google Sheets, manajemen stok, laporan penjualan, dan cetak struk.">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23059669' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7'/><path d='M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8'/><path d='M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4'/><path d='M2 7h20'/></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        :root { --app-primary: #059669; --app-primary-dark: #047857; --app-soft: #ecfdf5; }
+        .app-primary { background-color: var(--app-primary) !important; }
+        .app-primary-hover:hover { background-color: var(--app-primary-dark) !important; }
+        .app-text { color: var(--app-primary) !important; }
+        .app-soft { background-color: var(--app-soft) !important; }
+        [x-cloak] { display: none !important; }
+
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        /* Hide scrollbar for IE, Edge and Firefox */
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        @keyframes dockBounce {
+            0% { transform: scale(1); }
+            40% { transform: scale(0.92); }
+            70% { transform: scale(1.06); }
+            100% { transform: scale(1.04); }
+        }
+        .active-dock-item {
+            animation: dockBounce 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        @keyframes gentleFadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-gentle-fade {
+            animation: gentleFadeIn 0.3s ease-out forwards;
+        }
+
+        @media print {
+            body * { visibility: hidden; }
+            #printable-receipt, #printable-receipt * { visibility: visible; }
+            #printable-receipt { position: absolute; left: 0; top: 0; width: 100%; display: block !important; }
+        }
+    </style>
+</head>
+<body class="h-full text-slate-800" x-data="posApp()" x-init="init()">
+
+    <!-- Login Screen -->
+    <div x-show="!isLoggedIn" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4 bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900" x-cloak>
+        <div class="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl space-y-6 border border-slate-100">
+            <div class="text-center space-y-2">
+                <div class="relative w-20 h-20 mx-auto">
+                    <template x-if="loginPreviewUser && loginPreviewUser.profileImage">
+                        <img :src="loginPreviewUser.profileImage" class="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg">
+                    </template>
+                    <template x-if="!(loginPreviewUser && loginPreviewUser.profileImage)">
+                        <div class="w-20 h-20 app-primary text-white rounded-full flex items-center justify-center font-bold text-2xl shadow-lg shadow-black/10"><i data-lucide="user" class="w-9 h-9"></i></div>
+                    </template>
+                    <label x-show="loginPreviewUser && loginPreviewUser.role === 'admin'" class="absolute -right-1 -bottom-1 w-8 h-8 rounded-full bg-white border border-slate-200 shadow flex items-center justify-center cursor-pointer text-slate-600 hover:app-text" title="Edit foto profil admin">
+                        <i data-lucide="camera" class="w-4 h-4"></i>
+                        <input type="file" accept="image/*" class="hidden" @change="handleProfileImage($event, 'login')">
+                    </label>
+                </div>
+                <h1 class="text-2xl font-bold text-slate-900" x-text="settings.storeName">Tokoku POS</h1>
+                <p class="text-sm text-slate-500">Silakan login untuk masuk ke sistem kasir online</p>
+            </div>
+            <form @submit.prevent="handleLogin()" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Username</label>
+                    <div class="relative">
+                        <i data-lucide="user" class="w-5 h-5 absolute left-3.5 top-3 text-slate-400"></i>
+                        <input type="text" x-model="loginForm.username" required placeholder="Masukkan username" class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-medium">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Password</label>
+                    <div class="relative">
+                        <i data-lucide="lock" class="w-5 h-5 absolute left-3.5 top-3 text-slate-400"></i>
+                        <input type="password" x-model="loginForm.password" required placeholder="••••••••" class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-medium">
+                    </div>
+                </div>
+                <button type="submit" class="w-full py-3.5 app-primary app-primary-hover text-white font-bold rounded-xl shadow-lg shadow-black/10 transition flex items-center justify-center space-x-2 text-sm">
+                    <span>Masuk ke Sistem</span><i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App Wrapper with Bottom Navigation Layout -->
+    <div x-show="isLoggedIn" class="min-h-full flex flex-col bg-slate-50 relative pb-24 md:pb-28" x-cloak>
+        
+        <!-- Modern Top Header Bar -->
+        <header class="bg-white/90 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-30 px-4 sm:px-8 py-3 transition-all duration-300 shadow-xs">
+            <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+                
+                <!-- Left: Brand / Active Module / Cloud Status -->
+                <div class="flex items-center space-x-3 sm:space-x-4">
+                    <div class="app-primary text-white p-2.5 rounded-2xl flex items-center justify-center font-bold shadow-md shadow-emerald-600/20 transition-transform duration-300 hover:scale-105">
+                        <i data-lucide="store" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <h1 class="font-bold text-slate-900 text-sm sm:text-base tracking-tight truncate max-w-[150px] sm:max-w-xs" x-text="settings.storeName"></h1>
+                            <span class="hidden sm:inline-block text-slate-300">/</span>
+                            <span class="hidden sm:inline-flex items-center text-xs font-semibold app-text bg-emerald-50 px-2 py-0.5 rounded-md" x-text="tabs.find(t => t.id === activeTab)?.name"></span>
+                        </div>
+                        <p class="text-[11px] text-slate-400 hidden sm:block">Sistem POS & Manajemen Toko</p>
+                    </div>
+                    
+                    <!-- Cloud Sync Indicator -->
+                    <div class="hidden md:flex items-center space-x-1.5 ml-2">
+                        <span :class="dbSyncReady ? 'app-soft app-text' : 'bg-amber-50 text-amber-700 border border-amber-200'" class="text-[11px] font-semibold px-2.5 py-1 rounded-full flex items-center space-x-1.5 shadow-2xs">
+                            <span class="w-2 h-2 rounded-full" :class="dbSyncReady ? 'app-primary animate-pulse' : 'bg-amber-500'"></span>
+                            <span x-text="dbSyncReady ? 'Google Sheets' : 'Offline'"></span>
+                        </span>
+                        <button @click="initGasSync(true)" class="p-1.5 bg-slate-100 hover:app-soft text-slate-500 hover:app-text rounded-lg transition" title="Tarik Data dari Cloud">
+                            <i data-lucide="refresh-cw" class="w-3.5 h-3.5" :class="isSyncing ? 'animate-spin' : ''"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right: Clock, User Avatar, Logout -->
+                <div class="flex items-center space-x-3 sm:space-x-4">
+                    <!-- Live Clock -->
+                    <div class="hidden lg:flex flex-col text-right">
+                        <span class="text-xs font-semibold text-slate-700" x-text="currentDateStr"></span>
+                        <span class="text-[11px] font-mono text-slate-400" x-text="currentTimeStr"></span>
+                    </div>
+
+                    <div class="hidden lg:block h-6 w-px bg-slate-200"></div>
+
+                    <!-- User Profile Avatar Pill -->
+                    <div class="flex items-center space-x-2.5 p-1 sm:pr-3 rounded-full hover:bg-slate-100 transition cursor-pointer" 
+                         @click="currentUser.role === 'admin' ? openProfileModal('dashboard') : null" 
+                         :title="currentUser.role === 'admin' ? 'Ubah foto profil admin' : currentUser.name">
+                        <template x-if="currentUser.profileImage">
+                            <img :src="currentUser.profileImage" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover ring-2 ring-emerald-500/30">
+                        </template>
+                        <template x-if="!currentUser.profileImage">
+                            <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-full app-soft app-text flex items-center justify-center font-bold text-xs ring-2 ring-emerald-500/20" x-text="currentUser.name.charAt(0)"></div>
+                        </template>
+                        <div class="hidden sm:block text-left">
+                            <p class="text-xs font-semibold text-slate-800 leading-tight truncate max-w-[110px]" x-text="currentUser.name"></p>
+                            <p class="text-[10px] app-text uppercase font-bold tracking-wider" x-text="currentUser.role"></p>
+                        </div>
+                    </div>
+
+                    <!-- Logout Button -->
+                    <button @click="logout()" class="p-2 sm:px-3 sm:py-2 bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 rounded-xl transition flex items-center space-x-1.5 text-xs font-semibold shadow-2xs" title="Keluar / Ganti Akun">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                        <span class="hidden md:inline">Keluar</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 flex flex-col min-w-0">
+
+            <!-- 1. DASHBOARD MODULE -->
+            <div x-show="activeTab === 'dashboard'" 
+                 x-transition:enter="transition-all ease-out duration-300 transform" 
+                 x-transition:enter-start="opacity-0 translate-y-3 scale-[0.99]" 
+                 x-transition:enter-end="opacity-100 translate-y-0 scale-100" 
+                 class="p-4 sm:p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full pb-28 md:pb-32" x-cloak>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+                        <div><p class="text-sm font-medium text-slate-500">Penjualan Hari Ini</p><h3 class="text-2xl font-bold text-slate-800 mt-1" x-text="formatIDR(stats.todaySales)"></h3></div>
+                        <div class="w-12 h-12 app-soft app-text rounded-xl flex items-center justify-center"><i data-lucide="wallet" class="w-6 h-6"></i></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+                        <div><p class="text-sm font-medium text-slate-500">Estimasi Laba Bersih</p><h3 class="text-2xl font-bold text-emerald-600 mt-1" x-text="formatIDR(stats.todayProfit)"></h3></div>
+                        <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center"><i data-lucide="trending-up" class="w-6 h-6"></i></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+                        <div><p class="text-sm font-medium text-slate-500">Transaksi / Terjual</p><h3 class="text-2xl font-bold text-slate-800 mt-1" x-text="stats.todayTransactions + ' / ' + stats.todayItemsSold + ' pcs'"></h3></div>
+                        <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center"><i data-lucide="receipt" class="w-6 h-6"></i></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+                        <div><p class="text-sm font-medium text-slate-500">Stok Menipis</p><h3 class="text-2xl font-bold text-rose-600 mt-1" x-text="lowStockProducts.length + ' Produk'"></h3></div>
+                        <div class="w-12 h-12 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center"><i data-lucide="alert-triangle" class="w-6 h-6"></i></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                        <div class="flex items-center justify-between mb-4"><h3 class="font-bold text-slate-800 text-lg">Riwayat Penjualan Terakhir</h3><button @click="activeTab = 'riwayat'" class="text-xs font-semibold app-text hover:underline">Lihat Semua</button></div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="border-b border-slate-100 text-xs font-semibold text-slate-400 uppercase">
+                                        <th class="py-3 px-4">No. Transaksi</th><th class="py-3 px-4">Waktu</th><th class="py-3 px-4">Kasir</th><th class="py-3 px-4 text-right">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 text-sm">
+                                    <template x-for="trx in transactions.slice(0, 5)" :key="trx.id">
+                                        <tr class="hover:bg-slate-50 transition">
+                                            <td class="py-3 px-4 font-semibold app-text" x-text="trx.id"></td>
+                                            <td class="py-3 px-4 text-slate-500" x-text="trx.date"></td>
+                                            <td class="py-3 px-4 text-slate-700" x-text="trx.cashier"></td>
+                                            <td class="py-3 px-4 text-right font-medium text-slate-800" x-text="formatIDR(trx.total)"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                        <div class="flex items-center justify-between mb-4"><h3 class="font-bold text-slate-800 text-lg">Stok Menipis (&lt; 5)</h3><button @click="activeTab = 'stok'" class="text-xs font-semibold app-text hover:underline">Kelola</button></div>
+                        <div class="space-y-3">
+                            <template x-for="prod in lowStockProducts" :key="prod.id">
+                                <div class="flex items-center justify-between p-3 bg-rose-50/50 border border-rose-100 rounded-xl">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center font-bold text-xs"><i data-lucide="package" class="w-5 h-5"></i></div>
+                                        <div><h4 class="font-semibold text-slate-800 text-sm" x-text="prod.name"></h4><p class="text-xs text-slate-500" x-text="prod.category"></p></div>
+                                    </div>
+                                    <div class="text-right"><span class="inline-block bg-rose-100 text-rose-700 font-bold text-xs px-2.5 py-1 rounded-full" x-text="prod.stock + ' ' + prod.unit"></span></div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. KASIR / POS MODULE -->
+            <div x-show="activeTab === 'kasir'" 
+                 x-transition:enter="transition-all ease-out duration-300 transform" 
+                 x-transition:enter-start="opacity-0 translate-y-3 scale-[0.99]" 
+                 x-transition:enter-end="opacity-100 translate-y-0 scale-100" 
+                 class="p-4 sm:p-6 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 h-full pb-28 md:pb-32" x-cloak>
+                <div class="lg:col-span-7 flex flex-col space-y-4">
+                    <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                        <div class="relative flex-1">
+                            <i data-lucide="scan-barcode" class="w-5 h-5 absolute left-3.5 top-3 text-slate-400"></i>
+                            <input id="pos-search-input" type="text" x-model="posSearch" @keydown.enter.prevent="scanBarcodeOrAdd()" placeholder="Cari nama / scan barcode... (Tekan Enter)" class="w-full pl-11 pr-24 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                            <button type="button" @click="scanBarcodeOrAdd()" class="absolute right-2 top-2 px-2.5 py-1 app-soft app-text font-semibold rounded-lg text-xs hover:app-primary hover:text-white transition">Enter</button>
+                        </div>
+                        <select x-model="posCategoryFilter" class="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            <option value="">Semua Kategori</option>
+                            <template x-for="cat in categories" :key="cat.id"><option :value="cat.name" x-text="cat.name"></option></template>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 overflow-y-auto max-h-[calc(100vh-250px)] pr-2">
+                        <template x-for="prod in filteredPosProducts" :key="prod.id">
+                            <div @click="addToCart(prod)" class="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-emerald-200 cursor-pointer transition flex flex-col justify-between group">
+                                <div>
+                                    <div class="w-full h-28 mb-3 rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center">
+                                        <template x-if="prod.image">
+                                            <img :src="prod.image" :alt="prod.name" class="w-full h-full object-cover">
+                                        </template>
+                                        <template x-if="!prod.image">
+                                            <i data-lucide="image" class="w-8 h-8 text-slate-300"></i>
+                                        </template>
+                                    </div>
+                                    <h4 class="font-semibold text-slate-800 text-sm line-clamp-2" x-text="prod.name"></h4>
+                                    <p class="text-xs text-slate-400 mt-1" x-text="prod.category"></p>
+                                    <span class="inline-block mt-2 bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded-full" x-text="'Stok: ' + prod.stock + ' ' + prod.unit"></span>
+                                </div>
+                                <div class="mt-4 flex items-center justify-between">
+                                    <span class="font-bold app-text text-sm" x-text="formatIDR(prod.sellPrice)"></span>
+                                    <button class="w-8 h-8 rounded-lg app-soft app-text flex items-center justify-center group-hover:app-primary group-hover:text-white transition"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-5 bg-white border border-slate-200 rounded-2xl flex flex-col shadow-sm h-fit lg:h-[calc(100vh-120px)]">
+                    <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+                        <h3 class="font-bold text-slate-800 text-base flex items-center space-x-2"><i data-lucide="shopping-cart" class="w-5 h-5 app-text"></i><span>Keranjang Belanja</span></h3>
+                        <button @click="clearCart()" class="text-xs font-medium text-rose-600 hover:underline">Kosongkan</button>
+                    </div>
+
+                    <div class="flex-1 overflow-y-auto p-4 space-y-3 divide-y divide-slate-50">
+                        <template x-for="(item, index) in cart" :key="item.id">
+                            <div class="pt-3 first:pt-0 flex items-center justify-between">
+                                <div class="flex-1 pr-3">
+                                    <h4 class="font-semibold text-slate-800 text-sm" x-text="item.name"></h4>
+                                    <p class="text-xs app-text font-medium" x-text="formatIDR(item.sellPrice) + ' / ' + item.unit"></p>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <div class="flex items-center border border-slate-200 rounded-lg">
+                                        <button @click="updateCartQty(index, -1)" class="px-2 py-1 text-slate-600 hover:bg-slate-100 rounded-l-lg">-</button>
+                                        <span class="px-3 text-sm font-semibold" x-text="item.qty"></span>
+                                        <button @click="updateCartQty(index, 1)" class="px-2 py-1 text-slate-600 hover:bg-slate-100 rounded-r-lg">+</button>
+                                    </div>
+                                    <button @click="removeFromCart(index)" class="text-slate-400 hover:text-rose-600 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <div class="p-4 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl space-y-3">
+                        <div class="flex items-center space-x-2">
+                            <i data-lucide="user" class="w-4 h-4 text-slate-400"></i>
+                            <input type="text" x-model="posCustomerName" placeholder="Nama Pelanggan / Meja (Opsional)" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-emerald-500">
+                        </div>
+
+                        <!-- Metode Pembayaran -->
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Metode Pembayaran</label>
+                            <div class="grid grid-cols-3 gap-1.5 bg-slate-200/70 p-1 rounded-xl text-xs font-semibold text-center">
+                                <button type="button" @click="posPaymentMethod = 'Tunai'; posCash = cartTotal" :class="posPaymentMethod === 'Tunai' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'" class="py-1.5 rounded-lg transition">Tunai</button>
+                                <button type="button" @click="posPaymentMethod = 'QRIS'; isQrisModalOpen = true" :class="posPaymentMethod === 'QRIS' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'" class="py-1.5 rounded-lg transition">QRIS</button>
+                                <button type="button" @click="posPaymentMethod = 'Transfer'" :class="posPaymentMethod === 'Transfer' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'" class="py-1.5 rounded-lg transition">Transfer</button>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between text-sm"><span class="text-slate-500">Subtotal</span><span class="font-semibold text-slate-800" x-text="formatIDR(cartSubtotal)"></span></div>
+                        <div class="flex justify-between text-sm items-center"><span class="text-slate-500">Diskon (Rp)</span><input type="number" x-model.number="posDiscount" class="w-32 bg-white border border-slate-200 rounded-lg px-2 py-1 text-right text-sm focus:ring-2 focus:ring-emerald-500"></div>
+                        <div class="flex justify-between text-base font-bold pt-2 border-t border-slate-200"><span class="text-slate-800">Total Belanja</span><span class="app-text" x-text="formatIDR(cartTotal)"></span></div>
+                        
+                        <!-- Input Tunai & Pecahan Cepat -->
+                        <div x-show="posPaymentMethod === 'Tunai'" class="space-y-2">
+                            <div class="flex justify-between text-sm items-center">
+                                <span class="text-slate-500 font-medium">Uang Pembayaran</span>
+                                <input type="number" x-model.number="posCash" class="w-36 bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-right text-sm font-semibold focus:ring-2 focus:ring-emerald-500" placeholder="0">
+                            </div>
+                            <!-- Tombol Nominal Cepat -->
+                            <div class="flex flex-wrap gap-1.5 justify-end">
+                                <button type="button" @click="setQuickCash('exact')" class="px-2 py-1 bg-white border border-slate-200 hover:border-emerald-500 text-[11px] font-bold app-text rounded-md shadow-2xs">Uang Pas</button>
+                                <button type="button" @click="setQuickCash(10000)" class="px-2 py-1 bg-white border border-slate-200 hover:border-emerald-500 text-[11px] font-medium text-slate-700 rounded-md shadow-2xs">+10rb</button>
+                                <button type="button" @click="setQuickCash(20000)" class="px-2 py-1 bg-white border border-slate-200 hover:border-emerald-500 text-[11px] font-medium text-slate-700 rounded-md shadow-2xs">+20rb</button>
+                                <button type="button" @click="setQuickCash(50000)" class="px-2 py-1 bg-white border border-slate-200 hover:border-emerald-500 text-[11px] font-medium text-slate-700 rounded-md shadow-2xs">+50rb</button>
+                                <button type="button" @click="setQuickCash(100000)" class="px-2 py-1 bg-white border border-slate-200 hover:border-emerald-500 text-[11px] font-medium text-slate-700 rounded-md shadow-2xs">+100rb</button>
+                                <button type="button" @click="posCash = 0" class="px-2 py-1 bg-rose-50 text-rose-600 text-[11px] font-semibold rounded-md">C</button>
+                            </div>
+                            <div class="flex justify-between text-sm"><span class="text-slate-500">Kembalian</span><span class="font-semibold" :class="posChange < 0 ? 'text-rose-600' : 'app-text'" x-text="formatIDR(posChange)"></span></div>
+                        </div>
+
+                        <!-- Info QRIS -->
+                        <div x-show="posPaymentMethod === 'QRIS'" class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs">
+                            <div><p class="font-bold text-emerald-800">Pembayaran QRIS</p><p class="text-emerald-600">Pelanggan scan barcode QRIS</p></div>
+                            <button type="button" @click="isQrisModalOpen = true" class="px-3 py-1.5 app-primary text-white font-semibold rounded-lg shadow-sm">Buka QRIS</button>
+                        </div>
+
+                        <!-- Info Transfer -->
+                        <div x-show="posPaymentMethod === 'Transfer'" class="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs space-y-1">
+                            <p class="font-bold text-blue-900">Rekening Transfer Toko:</p>
+                            <p class="text-blue-700 font-mono text-xs" x-text="settings.bankAccount || 'BCA 1234567890 a/n KOPMA'"></p>
+                        </div>
+
+                        <button @click="processCheckout()" :disabled="cart.length === 0 || (posPaymentMethod === 'Tunai' && posChange < 0)" class="w-full mt-3 py-3 app-primary app-primary-hover disabled:bg-slate-300 text-white font-bold rounded-xl shadow-lg transition flex items-center justify-center space-x-2">
+                            <i data-lucide="check-circle" class="w-5 h-5"></i>
+                            <span x-text="'Simpan & Cetak Struk (' + posPaymentMethod + ')'"></span>
+                        </button>
+                        <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1">
+                            <span>Shortcut: <b>F2</b> Scan/Cari | <b>F4</b> Bayar | <b>F8</b> Kosongkan</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. PRODUK MODULE -->
+            <div x-show="activeTab === 'produk'" 
+                 x-transition:enter="transition-all ease-out duration-300 transform" 
+                 x-transition:enter-start="opacity-0 translate-y-3 scale-[0.99]" 
+                 x-transition:enter-end="opacity-100 translate-y-0 scale-100" 
+                 class="p-4 sm:p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full pb-28 md:pb-32" x-cloak>
+                <div class="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4">
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
+                        <div class="relative flex-1 max-w-md">
+                            <i data-lucide="search" class="w-5 h-5 absolute left-3.5 top-3 text-slate-400"></i>
+                            <input type="text" x-model="productSearch" placeholder="Cari nama, ID, atau barcode produk..." class="w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                        <select x-model="productFilterStock" class="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            <option value="all">Semua Status Stok</option>
+                            <option value="low">Stok Menipis (&lt; 5)</option>
+                            <option value="empty">Stok Habis (0)</option>
+                        </select>
+                        <select x-model="productSortBy" class="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            <option value="name">Urutkan: Nama A-Z</option>
+                            <option value="price_asc">Harga: Termurah</option>
+                            <option value="price_desc">Harga: Termahal</option>
+                            <option value="stock_asc">Stok: Paling Sedikit</option>
+                            <option value="stock_desc">Stok: Paling Banyak</option>
+                        </select>
+                    </div>
+                    <button @click="openProductModal()" class="px-4 py-2.5 app-primary app-primary-hover text-white font-semibold rounded-xl transition flex items-center justify-center space-x-2 text-sm shadow-sm shrink-0"><i data-lucide="plus" class="w-4 h-4"></i><span>Tambah Produk</span></button>
+                </div>
+                <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase">
+                                <th class="py-3.5 px-6">Produk</th><th class="py-3.5 px-6">Kategori</th><th class="py-3.5 px-6">Harga Beli</th><th class="py-3.5 px-6">Harga Jual</th><th class="py-3.5 px-6">Stok</th><th class="py-3.5 px-6 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-sm">
+                            <template x-for="prod in filteredProducts" :key="prod.id + '-' + (prod.image || '').slice(-24)">
+                                <tr class="hover:bg-slate-50">
+                                    <td class="py-4 px-6">
+                                        <h4 class="font-semibold text-slate-800" x-text="prod.name"></h4>
+                                        <div class="flex items-center space-x-2 text-xs text-slate-400 mt-0.5">
+                                            <span x-text="'ID: ' + prod.id"></span>
+                                            <template x-if="prod.barcode">
+                                                <span class="font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded text-[10px]" x-text="'Barcode: ' + prod.barcode"></span>
+                                            </template>
+                                        </div>
+                                    </td>
+                                    <td class="py-4 px-6 text-slate-600" x-text="prod.category"></td><td class="py-4 px-6 text-slate-600" x-text="formatIDR(prod.buyPrice)"></td>
+                                    <td class="py-4 px-6 font-semibold app-text" x-text="formatIDR(prod.sellPrice)"></td>
+                                    <td class="py-4 px-6 font-medium"><span :class="prod.stock < 5 ? 'text-rose-600 bg-rose-50 px-2.5 py-1 rounded-full text-xs font-bold' : 'text-slate-700'" x-text="prod.stock + ' ' + prod.unit"></span></td>
+                                    <td class="py-4 px-6 text-center">
+                                        <div class="flex items-center justify-center space-x-2">
+                                            <button @click="editProduct(prod)" class="p-1.5 bg-slate-100 hover:app-soft hover:app-text rounded-lg transition text-slate-600" title="Edit"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                                            <button @click="confirmDeleteProduct(prod.id)" class="p-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 rounded-lg transition text-slate-600" title="Hapus"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 4. KATEGORI MODULE -->
+            <div x-show="activeTab === 'kategori'" 
+                 x-transition:enter="transition-all ease-out duration-300 transform" 
+                 x-transition:enter-start="opacity-0 translate-y-3 scale-[0.99]" 
+                 x-transition:enter-end="opacity-100 translate-y-0 scale-100" 
+                 class="p-4 sm:p-6 md:p-8 space-y-6 max-w-4xl mx-auto w-full pb-28 md:pb-32" x-cloak>
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold text-slate-800 text-lg">Kelola Kategori Produk</h3>
+                    <button @click="openCategoryModal()" class="px-4 py-2.5 app-primary app-primary-hover text-white font-semibold rounded-xl transition flex items-center space-x-2 text-sm"><i data-lucide="plus" class="w-4 h-4"></i><span>Tambah Kategori</span></button>
+                </div>
+                <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                    <table class="w-full text-left border-collapse">
+                        <thead><tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase"><th class="py-3.5 px-6">Nama Kategori</th><th class="py-3.5 px-6 text-center">Aksi</th></tr></thead>
+                        <tbody class="divide-y divide-slate-100 text-sm">
+                            <template x-for="cat in categories" :key="cat.id">
+                                <tr class="hover:bg-slate-50">
+                                    <td class="py-4 px-6 font-semibold text-slate-800" x-text="cat.name"></td>
+                                    <td class="py-4 px-6 text-center">
+                                        <button @click="editCategory(cat)" class="p-1.5 bg-slate-100 hover:app-text rounded-lg mr-2" title="Edit"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                                        <button @click="confirmDeleteCategory(cat.id)" class="p-1.5 bg-slate-100 hover:text-rose-600 rounded-lg" title="Hapus"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 5. RIWAYAT TRANSAKSI MODULE -->
+            <div x-show="activeTab === 'riwayat'" 
+                 x-transition:enter="transition-all ease-out duration-300 transform" 
+                 x-transition:enter-start="opacity-0 translate-y-3 scale-[0.99]" 
+                 x-transition:enter-end="opacity-100 translate-y-0 scale-100" 
+                 class="p-4 sm:p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full pb-28 md:pb-32" x-cloak>
+                
+                <!-- Header with Title & Sub-tabs -->
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800">Riwayat & Arsip Transaksi</h2>
+                        <p class="text-xs text-slate-400 mt-0.5">Sistem mereset riwayat aktif harian secara otomatis tanpa menghapus data — seluruh riwayat tersimpan aman per hari.</p>
+                    </div>
+
+                    <!-- Sub-tabs Switcher -->
+                    <div class="flex items-center bg-slate-100 p-1 rounded-xl w-full md:w-auto">
+                        <button @click="historySubTab = 'active'; refreshIcons()" 
+                                :class="historySubTab === 'active' ? 'app-primary text-white shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'" 
+                                class="flex-1 md:flex-initial flex items-center justify-center space-x-2 px-4 py-2 rounded-lg text-xs transition">
+                            <i data-lucide="clock" class="w-4 h-4"></i>
+                            <span>Transaksi Aktif</span>
+                            <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold" 
+                                  :class="historySubTab === 'active' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'" 
+                                  x-text="transactions.length"></span>
+                        </button>
+
+                        <button @click="historySubTab = 'archives'; refreshIcons()" 
+                                :class="historySubTab === 'archives' ? 'app-primary text-white shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'" 
+                                class="flex-1 md:flex-initial flex items-center justify-center space-x-2 px-4 py-2 rounded-lg text-xs transition">
+                            <i data-lucide="calendar" class="w-4 h-4"></i>
+                            <span>Arsip Rekap Per Hari</span>
+                            <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold" 
+                                  :class="historySubTab === 'archives' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'" 
+                                  x-text="dailyArchives.length"></span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- VIEW 1: TRANSAKSI AKTIF (HARI INI) -->
+                <div x-show="historySubTab === 'active'" class="space-y-4">
+                    <!-- Auto-reset Info Alert -->
+                    <div class="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                        <div class="flex items-center space-x-3 text-emerald-800">
+                            <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                                <i data-lucide="shield-check" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <p class="font-semibold">Reset Otomatis Harian Aktif</p>
+                                <p class="text-emerald-700/80 text-[11px]">Ketika hari berganti, riwayat hari kemarin otomatis dipindahkan ke tab <strong class="underline cursor-pointer" @click="historySubTab = 'archives'">Arsip Rekap Per Hari</strong> sehingga data tidak pernah hilang.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2 shrink-0">
+                            <button @click="manualArchiveCurrentDay()" 
+                                    class="px-3 py-1.5 bg-white hover:bg-emerald-100 text-emerald-800 font-semibold rounded-lg border border-emerald-300 shadow-2xs transition flex items-center space-x-1.5"
+                                    title="Pindahkan riwayat aktif hari ini ke Arsip Harian secara manual">
+                                <i data-lucide="archive" class="w-3.5 h-3.5"></i>
+                                <span>Arsipkan & Tutup Sesi Sekarang</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Search and Actions Bar -->
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div class="relative flex-1 max-w-md w-full">
+                            <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-3 text-slate-400"></i>
+                            <input type="text" x-model="historySearch" placeholder="Cari no. transaksi atau pelanggan..." class="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div class="flex items-center space-x-2 w-full sm:w-auto">
+                            <button @click="exportCSVReport()" class="flex-1 sm:flex-initial px-4 py-2.5 app-soft hover:app-soft app-text font-semibold rounded-xl transition flex items-center justify-center space-x-2 text-xs border border-emerald-200 shadow-2xs">
+                                <i data-lucide="download" class="w-4 h-4"></i>
+                                <span>Download CSV Hari Ini</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Table of Active Transactions -->
+                    <div class="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                                        <th class="py-3 px-5">No. Transaksi</th>
+                                        <th class="py-3 px-5">Waktu</th>
+                                        <th class="py-3 px-5">Kasir</th>
+                                        <th class="py-3 px-5">Pelanggan</th>
+                                        <th class="py-3 px-5">Metode</th>
+                                        <th class="py-3 px-5 text-right">Total</th>
+                                        <th class="py-3 px-5 text-center">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 text-xs">
+                                    <template x-for="trx in filteredTransactions" :key="trx.id">
+                                        <tr class="hover:bg-slate-50/80 transition-colors">
+                                            <td class="py-3 px-5 font-semibold app-text" x-text="trx.id"></td>
+                                            <td class="py-3 px-5 text-slate-600" x-text="trx.date"></td>
+                                            <td class="py-3 px-5 text-slate-700" x-text="trx.cashier"></td>
+                                            <td class="py-3 px-5 text-slate-700 font-medium" x-text="trx.customer || 'Umum'"></td>
+                                            <td class="py-3 px-5">
+                                                <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                                                      :class="trx.method === 'QRIS' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : (trx.method === 'Transfer' ? 'bg-sky-50 text-sky-700 border border-sky-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200')"
+                                                      x-text="trx.method || 'Tunai'"></span>
+                                            </td>
+                                            <td class="py-3 px-5 font-bold text-slate-900 text-right" x-text="formatIDR(trx.total)"></td>
+                                            <td class="py-3 px-5 text-center">
+                                                <div class="flex items-center justify-center space-x-1.5">
+                                                    <button @click="viewTransactionDetail(trx)" class="p-1.5 bg-slate-100 hover:app-soft hover:app-text text-slate-600 rounded-lg transition" title="Lihat Detail Transaksi">
+                                                        <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                                    </button>
+                                                    <button @click="printReceipt(trx)" class="p-1.5 bg-slate-100 hover:app-soft hover:app-text text-slate-600 rounded-lg transition" title="Cetak Struk">
+                                                        <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                    <template x-if="filteredTransactions.length === 0">
+                                        <tr>
+                                            <td colspan="7" class="py-12 text-center text-slate-400">
+                                                <div class="flex flex-col items-center justify-center space-y-2">
+                                                    <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+                                                        <i data-lucide="inbox" class="w-6 h-6"></i>
+                                                    </div>
+                                                    <p class="text-sm font-semibold text-slate-600">Belum Ada Transaksi Aktif</p>
+                                                    <p class="text-xs text-slate-400 max-w-sm">Transaksi baru yang dibuat di kasir hari ini akan muncul di sini. Riwayat hari sebelumnya telah tersimpan di tab Arsip Rekap Per Hari.</p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VIEW 2: ARSIP REKAP PER HARI -->
+                <div x-show="historySubTab === 'archives'" class="space-y-4">
+                    
+                    <!-- Search & Quick Summary Stats -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-xl app-soft app-text flex items-center justify-center font-bold">
+                                <i data-lucide="calendar-days" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <p class="text-[11px] text-slate-400 uppercase font-semibold">Total Hari Tersimpan</p>
+                                <p class="text-lg font-bold text-slate-800" x-text="dailyArchives.length + ' Hari'"></p>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                                <i data-lucide="receipt" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <p class="text-[11px] text-slate-400 uppercase font-semibold">Total Transaksi Terarsip</p>
+                                <p class="text-lg font-bold text-slate-800" x-text="dailyArchives.reduce((s, a) => s + (a.totalTransactions || a.transactions.length || 0), 0) + ' Transaksi'"></p>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                                <i data-lucide="coins" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <p class="text-[11px] text-slate-400 uppercase font-semibold">Total Omzet Terarsip</p>
+                                <p class="text-lg font-bold text-slate-800" x-text="formatIDR(dailyArchives.reduce((s, a) => s + (a.totalRevenue || 0), 0))"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Search Filter -->
+                    <div class="relative max-w-md w-full">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-3 text-slate-400"></i>
+                        <input type="text" x-model="archiveSearch" placeholder="Cari tanggal arsip (misal: 2026-09 atau September)..." class="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+
+                    <!-- List of Daily Archives -->
+                    <div class="space-y-3">
+                        <template x-for="archive in filteredDailyArchives" :key="archive.date">
+                            <div class="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs hover:border-emerald-300 hover:shadow-md transition-all duration-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                
+                                <!-- Left: Date & Status Badge -->
+                                <div class="flex items-start sm:items-center space-x-3.5">
+                                    <div class="w-11 h-11 rounded-2xl app-soft app-text flex items-center justify-center font-bold shrink-0 shadow-2xs">
+                                        <i data-lucide="calendar" class="w-5 h-5"></i>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center space-x-2">
+                                            <h4 class="font-bold text-slate-900 text-sm sm:text-base" x-text="archive.dateFormatted || formatDateIndo(archive.date)"></h4>
+                                            <span class="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full font-mono font-semibold" x-text="archive.date"></span>
+                                        </div>
+                                        <p class="text-[11px] text-slate-400 mt-0.5 flex items-center space-x-1.5">
+                                            <span>Tersimpan aman</span>
+                                            <span>&bull;</span>
+                                            <span class="font-semibold text-emerald-700" x-text="(archive.totalTransactions || archive.transactions.length) + ' Transaksi'"></span>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Middle: Metrics Grid (Revenue, Profit, Items) -->
+                                <div class="grid grid-cols-3 gap-2 sm:gap-4 py-2 md:py-0 border-y md:border-y-0 border-slate-100 text-center md:text-left">
+                                    <div class="bg-slate-50 md:bg-transparent p-2 md:p-0 rounded-xl">
+                                        <p class="text-[10px] text-slate-400 uppercase font-semibold">Total Omzet</p>
+                                        <p class="text-xs sm:text-sm font-bold text-slate-800" x-text="formatIDR(archive.totalRevenue)"></p>
+                                    </div>
+                                    <div class="bg-slate-50 md:bg-transparent p-2 md:p-0 rounded-xl">
+                                        <p class="text-[10px] text-slate-400 uppercase font-semibold">Est. Laba</p>
+                                        <p class="text-xs sm:text-sm font-bold text-emerald-600" x-text="formatIDR(archive.totalProfit)"></p>
+                                    </div>
+                                    <div class="bg-slate-50 md:bg-transparent p-2 md:p-0 rounded-xl">
+                                        <p class="text-[10px] text-slate-400 uppercase font-semibold">Item Terjual</p>
+                                        <p class="text-xs sm:text-sm font-bold text-slate-700" x-text="(archive.totalItemsSold || 0) + ' pcs'"></p>
+                                    </div>
+                                </div>
+
+                                <!-- Right: Action Buttons (View, Download CSV, Delete) -->
+                                <div class="flex items-center space-x-2 shrink-0 self-end md:self-center">
+                                    <!-- View Details Button -->
+                                    <button @click="viewArchiveDetail(archive)" 
+                                            class="px-3 py-2 bg-slate-100 hover:app-soft text-slate-700 hover:app-text font-semibold rounded-xl text-xs transition flex items-center space-x-1.5 shadow-2xs" 
+                                            title="Lihat rincian transaksi hari ini">
+                                        <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                        <span>Rincian</span>
+                                    </button>
+
+                                    <!-- Download CSV Button -->
+                                    <button @click="downloadDailyArchiveCSV(archive)" 
+                                            class="px-3.5 py-2 app-primary app-primary-hover text-white font-semibold rounded-xl text-xs transition flex items-center space-x-1.5 shadow-sm shadow-emerald-600/20" 
+                                            title="Download file CSV rekap hari ini">
+                                        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                                        <span>Download CSV</span>
+                                    </button>
+
+                                    <!-- Delete Archive Button -->
+                                    <button @click="confirmDeleteDailyArchive(archive)" 
+                                            class="p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl transition shadow-2xs" 
+                                            title="Hapus arsip hari ini">
+                                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Empty State Archives -->
+                        <template x-if="filteredDailyArchives.length === 0">
+                            <div class="bg-white border border-slate-200 rounded-2xl p-12 text-center text-slate-400">
+                                <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mx-auto mb-3">
+                                    <i data-lucide="folder-archive" class="w-6 h-6"></i>
+                                </div>
+                                <h4 class="text-sm font-semibold text-slate-700">Belum Ada Arsip Harian</h4>
+                                <p class="text-xs text-slate-400 max-w-md mx-auto mt-1">
+                                    Ketika hari berganti, transaksi kasir akan secara otomatis diarsipkan ke sini per tanggal tanpa hilang. Anda juga dapat menekan tombol <strong>"Arsipkan & Tutup Sesi Sekarang"</strong> di tab Transaksi Aktif kapan saja.
+                                </p>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 6. LAPORAN MODULE -->
+            <div x-show="activeTab === 'laporan'" 
+                 x-transition:enter="transition-all ease-out duration-300 transform" 
+                 x-transition:enter-start="opacity-0 translate-y-3 scale-[0.99]" 
+                 x-transition:enter-end="opacity-100 translate-y-0 scale-100" 
+                 class="p-4 sm:p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full pb-28 md:pb-32" x-cloak>
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-lg">Laporan Penjualan & Analisis Laba</h3>
+                        <p class="text-xs text-slate-400">Ringkasan omzet, estimasi keuntungan, dan produk terlaris.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <!-- Filter Periode -->
+                        <div class="bg-slate-100 p-1 rounded-xl flex text-xs font-semibold">
+                            <button @click="reportFilter = 'all'" :class="reportFilter === 'all' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'" class="px-3 py-1.5 rounded-lg transition">Semua</button>
+                            <button @click="reportFilter = 'today'" :class="reportFilter === 'today' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'" class="px-3 py-1.5 rounded-lg transition">Hari Ini</button>
+                            <button @click="reportFilter = 'week'" :class="reportFilter === 'week' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'" class="px-3 py-1.5 rounded-lg transition">7 Hari</button>
+                            <button @click="reportFilter = 'month'" :class="reportFilter === 'month' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'" class="px-3 py-1.5 rounded-lg transition">30 Hari</button>
+                        </div>
+                        <button @click="exportCSVReport()" class="px-3.5 py-2 app-soft hover:app-soft app-text font-semibold rounded-xl transition flex items-center space-x-1.5 text-xs border border-emerald-200"><i data-lucide="download" class="w-4 h-4"></i><span>Export CSV</span></button>
+                        <button @click="confirmResetReports()" class="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold rounded-xl transition flex items-center space-x-1.5 text-xs border border-rose-200"><i data-lucide="rotate-ccw" class="w-4 h-4"></i><span>Reset</span></button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                    <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Omzet</p>
+                        <h3 class="text-2xl font-bold text-slate-800 mt-2" x-text="formatIDR(reportStats.revenue)"></h3>
+                        <p class="text-[11px] text-slate-400 mt-1" x-text="reportStats.count + ' transaksi dihitung'"></p>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                        <p class="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Estimasi Laba Bersih</p>
+                        <h3 class="text-2xl font-bold text-emerald-600 mt-2" x-text="formatIDR(reportStats.profit)"></h3>
+                        <p class="text-[11px] text-emerald-700/70 mt-1" x-text="'Margin laba: ' + reportStats.margin + '%'"></p>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Rata-rata Belanja</p>
+                        <h3 class="text-2xl font-bold text-slate-800 mt-2" x-text="formatIDR(reportStats.avgOrder)"></h3>
+                        <p class="text-[11px] text-slate-400 mt-1">Nilai per transaksi</p>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Transaksi</p>
+                        <h3 class="text-2xl font-bold app-text mt-2" x-text="reportStats.count + ' Struk'"></h3>
+                        <p class="text-[11px] text-slate-400 mt-1">Dalam periode terpilih</p>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                    <h3 class="font-bold text-slate-800 text-lg mb-4">Produk Terlaris Berdasarkan Terjual (Arsip Lengkap)</h3>
+                    <div class="space-y-4">
+                        <template x-for="(prod, idx) in topSellingProducts" :key="prod.name">
+                            <div class="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+                                <div class="flex items-center space-x-4">
+                                    <span class="w-8 h-8 rounded-full app-soft app-text font-bold flex items-center justify-center text-sm" x-text="'#' + (idx + 1)"></span>
+                                    <div><h4 class="font-semibold text-slate-800 text-sm" x-text="prod.name"></h4><p class="text-xs text-slate-400" x-text="'Kategori: ' + prod.category"></p></div>
+                                </div>
+                                <div class="flex items-center space-x-4">
+                                    <span class="font-bold app-text text-sm" x-text="prod.soldCount + ' terjual'"></span>
+                                    <button @click="confirmDeleteProductByName(prod.name)" class="px-3 py-1.5 bg-white hover:bg-rose-50 text-slate-700 hover:text-rose-600 rounded-lg border border-slate-200 text-xs font-semibold flex items-center space-x-1.5 shadow-sm"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i><span>Hapus</span></button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. STOK MODULE -->
+            <div x-show="activeTab === 'stok'" 
+                 x-transition:enter="transition-all ease-out duration-300 transform" 
+                 x-transition:enter-start="opacity-0 translate-y-3 scale-[0.99]" 
+                 x-transition:enter-end="opacity-100 translate-y-0 scale-100" 
+                 class="p-4 sm:p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full pb-28 md:pb-32" x-cloak>
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                    <h3 class="font-bold text-slate-800 text-lg">Manajemen & Riwayat Stok Barang</h3>
+                    <div class="flex items-center gap-2">
+                    <button @click="confirmClearStockLogs()" class="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-semibold rounded-xl transition flex items-center space-x-2 text-sm"><i data-lucide="trash-2" class="w-4 h-4"></i><span>Hapus Riwayat</span></button>
+                    <button @click="openStockModal()" class="px-4 py-2.5 app-primary app-primary-hover text-white font-semibold rounded-xl shadow-md transition flex items-center space-x-2 text-sm"><i data-lucide="plus-circle" class="w-4 h-4"></i><span>Barang Masuk / Keluar</span></button>
+                    </div>
+                </div>
+                <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 bg-slate-50 font-semibold text-sm text-slate-700">Riwayat Perubahan Stok</div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead><tr class="border-b border-slate-100 text-xs font-semibold text-slate-400 uppercase"><th class="py-3 px-6">Tanggal</th><th class="py-3 px-6">Nama Produk</th><th class="py-3 px-6">Tipe</th><th class="py-3 px-6">Jumlah</th><th class="py-3 px-6">Keterangan</th></tr></thead>
+                            <tbody class="divide-y divide-slate-100 text-sm">
+                                <template x-for="log in stockLogs" :key="log.id">
+                                    <tr class="hover:bg-slate-50 transition">
+                                        <td class="py-3.5 px-6 text-slate-600" x-text="log.date"></td><td class="py-3.5 px-6 font-semibold text-slate-800" x-text="log.productName"></td>
+                                        <td class="py-3.5 px-6"><span :class="log.type === 'IN' ? 'app-soft app-text' : 'bg-rose-100 text-rose-700'" class="text-xs font-bold px-2.5 py-1 rounded-full" x-text="log.type === 'IN' ? 'Barang Masuk' : 'Barang Keluar'"></span></td>
+                                        <td class="py-3.5 px-6 font-semibold" :class="log.type === 'IN' ? 'app-text' : 'text-rose-600'" x-text="(log.type === 'IN' ? '+' : '-') + log.qty"></td>
+                                        <td class="py-3.5 px-6 text-slate-500" x-text="log.note || '-'"></td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 8. PENGATURAN MODULE -->
+            <div x-show="activeTab === 'pengaturan'" 
+                 x-transition:enter="transition-all ease-out duration-300 transform" 
+                 x-transition:enter-start="opacity-0 translate-y-3 scale-[0.99]" 
+                 x-transition:enter-end="opacity-100 translate-y-0 scale-100" 
+                 class="p-4 sm:p-6 md:p-8 space-y-6 max-w-4xl mx-auto w-full pb-28 md:pb-32" x-cloak>
+                <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
+                    <h3 class="font-bold text-slate-800 text-lg border-b border-slate-100 pb-4">Pengaturan Toko & Struk</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div><label class="block text-sm font-medium text-slate-700 mb-1">Nama Toko</label><input type="text" x-model="settings.storeName" class="w-full border rounded-xl px-4 py-2.5 text-sm"></div>
+                        <div><label class="block text-sm font-medium text-slate-700 mb-1">Nomor Telepon Toko</label><input type="text" x-model="settings.phone" class="w-full border rounded-xl px-4 py-2.5 text-sm"></div>
+                        <div class="md:col-span-2"><label class="block text-sm font-medium text-slate-700 mb-1">Alamat Toko</label><textarea x-model="settings.address" rows="2" class="w-full border rounded-xl px-4 py-2.5 text-sm"></textarea></div>
+                        <div><label class="block text-sm font-medium text-slate-700 mb-1">Pesan Footer Struk</label><input type="text" x-model="settings.receiptNote" class="w-full border rounded-xl px-4 py-2.5 text-sm"></div>
+                        <div><label class="block text-sm font-medium text-slate-700 mb-1">Rekening Transfer Toko</label><input type="text" x-model="settings.bankAccount" placeholder="BCA 1234567890 a/n KOPMA" class="w-full border rounded-xl px-4 py-2.5 text-sm"></div>
+                        <div class="md:col-span-2 flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                            <div>
+                                <h4 class="text-sm font-semibold text-slate-800">Efek Suara Audio Kasir</h4>
+                                <p class="text-xs text-slate-400">Bunyi 'beep' saat scan barcode/tambah produk & 'chime' saat transaksi selesai.</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" x-model="settings.soundEnabled" class="sr-only peer">
+                                <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="pt-6 border-t border-slate-100 space-y-4">
+                        <div>
+                            <h4 class="font-bold text-slate-800 text-base">Warna Tampilan Aplikasi</h4>
+                            <p class="text-xs text-slate-400 mt-1">Pilih warna utama aplikasi sesuai keinginan.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-3">
+                            <template x-for="theme in themeOptions" :key="theme.key">
+                                <button type="button" @click="setTheme(theme.key)"
+                                    class="w-12 h-12 rounded-xl border-4 transition"
+                                    :style="'background:' + theme.color + ';border-color:' + (settings.theme === theme.key ? '#0f172a' : 'transparent')"
+                                    :title="theme.name"
+                                    :aria-label="'Pilih warna ' + theme.name"></button>
+                            </template>
+                        </div>
+                    </div>
+
+                    <div class="pt-6 border-t border-slate-100 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div><h4 class="font-bold text-slate-800 text-base">Koneksi Database (Google Sheets)</h4><p class="text-xs text-slate-400">URL Web App Google Apps Script. Jika cloud tidak tersedia, aplikasi tetap bekerja dengan penyimpanan lokal.</p></div>
+                            <span :class="dbSyncReady ? 'app-soft app-text' : 'bg-amber-100 text-amber-700'" class="text-xs font-bold px-3 py-1 rounded-full" x-text="dbSyncReady ? 'Terhubung' : 'Offline'"></span>
+                        </div>
+                        <div class="space-y-2">
+                            <input type="url" x-model="gasUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm font-mono focus:ring-2 focus:ring-emerald-200 outline-none">
+                            <div class="flex flex-wrap gap-2">
+                                <button type="button" @click="saveGasUrl()" class="px-4 py-2 app-primary text-white rounded-xl text-xs font-semibold">Simpan URL</button>
+                                <button type="button" @click="testGasConnection()" class="px-4 py-2 bg-slate-800 text-white rounded-xl text-xs font-semibold">Tes Koneksi</button>
+                                <button type="button" @click="initGasSync(true)" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold border">Tarik Data</button>
+                            </div>
+                            <p class="text-[11px] text-slate-400">Gunakan URL Web App Apps Script yang berakhiran <b>/exec</b>. Setelah mengubah URL, tekan <b>Simpan URL</b> lalu <b>Tes Koneksi</b>.</p>
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-100 space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-sm">Cadangkan & Pulihkan Data Lengkap (.JSON)</h4>
+                                <p class="text-xs text-slate-400">Simpan seluruh produk, riwayat, dan transaksi ke file JSON atau pulihkan dari file cadangan.</p>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <button type="button" @click="exportFullBackupJSON()" class="px-3.5 py-2 app-soft hover:app-soft app-text font-semibold rounded-xl text-xs transition flex items-center space-x-1.5 border border-emerald-200 shadow-2xs">
+                                    <i data-lucide="save" class="w-4 h-4"></i>
+                                    <span>Backup (.JSON)</span>
+                                </button>
+                                <label class="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 font-semibold rounded-xl text-xs transition flex items-center space-x-1.5 border border-slate-200 cursor-pointer shadow-2xs">
+                                    <i data-lucide="upload" class="w-4 h-4"></i>
+                                    <span>Restore Data</span>
+                                    <input type="file" accept=".json,application/json" class="hidden" @change="importFullBackupJSON($event)">
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between p-3">
+                            <div>
+                                <h4 class="font-semibold text-slate-800 text-sm">Unduh Rekap Laporan Penjualan (CSV)</h4>
+                                <p class="text-xs text-slate-400">Buka langsung di Microsoft Excel atau Google Sheets.</p>
+                            </div>
+                            <button @click="exportCSVReport()" class="px-4 py-2 app-primary app-primary-hover text-white font-semibold rounded-xl text-xs transition flex items-center space-x-2"><i data-lucide="download" class="w-4 h-4"></i><span>Download CSV</span></button>
+                        </div>
+                    </div>
+
+                    <div class="pt-6 border-t border-slate-100 space-y-4">
+                        <div class="flex justify-between items-center"><h4 class="font-bold text-slate-800 text-base">Manajemen Pengguna (Admin & Kasir)</h4><button @click="openUserModal()" class="px-3 py-1.5 app-primary text-white font-semibold rounded-lg text-xs">Tambah Akun</button></div>
+                        <div class="space-y-2">
+                            <template x-for="usr in users" :key="usr.username">
+                                <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl text-sm">
+                                    <div><p class="font-semibold text-slate-800" x-text="usr.name + ' (' + usr.username + ')'"></p><p class="text-xs app-text uppercase font-medium" x-text="usr.role"></p></div>
+                                    <button @click="confirmDeleteUser(usr.username)" class="text-rose-500 hover:text-rose-700 text-xs font-semibold" x-show="usr.username !== 'admin'">Hapus</button>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    <div class="flex justify-end pt-4 border-t border-slate-100"><button @click="saveSettings()" class="px-6 py-2.5 app-primary app-primary-hover text-white font-semibold rounded-xl text-sm">Simpan Pengaturan</button></div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Modern Floating Bottom Navigation Menu ("Menu di Bawah") -->
+        <nav class="fixed bottom-3 sm:bottom-4 inset-x-0 z-40 flex justify-center px-2 sm:px-4 pointer-events-none select-none" aria-label="Menu Navigasi Bawah">
+            <div class="pointer-events-auto bg-white/92 backdrop-blur-2xl border border-slate-200/90 shadow-2xl shadow-slate-900/15 rounded-2xl sm:rounded-full p-1.5 flex items-center gap-1 sm:gap-1.5 max-w-full overflow-x-auto no-scrollbar ring-1 ring-black/5 transition-all duration-300">
+                <template x-for="tab in filteredTabs" :key="tab.id">
+                    <button @click="switchTab(tab.id)" 
+                            :class="activeTab === tab.id ? 'app-primary text-white shadow-md shadow-emerald-600/30 font-semibold active-dock-item' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/80'" 
+                            class="relative group flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-full text-xs font-medium transition-all duration-200 ease-out transform active:scale-95 shrink-0">
+                        
+                        <i :data-lucide="tab.icon" class="w-4 h-4 transition-transform duration-200 group-hover:scale-110"></i>
+                        <span class="hidden md:inline-block transition-all duration-200" x-text="tab.name"></span>
+                        <span class="inline-block md:hidden text-[11px]" x-show="activeTab === tab.id" x-text="tab.name"></span>
+                        
+                        <!-- Cart items badge for Kasir -->
+                        <template x-if="tab.id === 'kasir' && cart.length > 0">
+                            <span class="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-bold min-w-4 h-4 px-1 rounded-full flex items-center justify-center shadow animate-bounce" x-text="cart.reduce((s,i) => s + i.qty, 0)"></span>
+                        </template>
+                        <!-- Low stock alert badge for Stok -->
+                        <template x-if="tab.id === 'stok' && lowStockProducts.length > 0">
+                            <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-white animate-pulse"></span>
+                        </template>
+                    </button>
+                </template>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Profile Photo Modal -->
+    <div x-show="isProfileModalOpen" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4" x-cloak>
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl space-y-5">
+            <div class="flex items-center justify-between"><h3 class="font-bold text-slate-800 text-lg">Foto Profil</h3><button @click="isProfileModalOpen=false" class="p-2 bg-slate-100 rounded-lg"><i data-lucide="x" class="w-4 h-4"></i></button></div>
+            <div class="flex flex-col items-center gap-4">
+                <template x-if="currentUser.profileImage"><img :src="currentUser.profileImage" class="w-28 h-28 rounded-full object-cover border-4 border-slate-100 shadow"></template>
+                <template x-if="!currentUser.profileImage"><div class="w-28 h-28 rounded-full app-soft app-text flex items-center justify-center text-4xl font-bold" x-text="currentUser.name.charAt(0)"></div></template>
+                <label x-show="currentUser.role === 'admin'" class="px-4 py-2.5 app-primary app-primary-hover text-white rounded-xl text-sm font-semibold cursor-pointer flex items-center gap-2"><i data-lucide="camera" class="w-4 h-4"></i><span>Pilih Foto</span><input type="file" accept="image/*" class="hidden" @change="handleProfileImage($event, 'dashboard')"></label>
+                <button x-show="currentUser.role === 'admin' && currentUser.profileImage" @click="removeProfileImage()" class="text-xs font-semibold text-rose-600 hover:underline">Hapus foto profil</button>
+                <p class="text-xs text-slate-400 text-center" x-text="currentUser.role === 'admin' ? 'Foto profil admin dapat diubah dan akan tampil di halaman login dan dashboard.' : 'Foto profil kasir hanya dapat dilihat dan tidak dapat diubah.'"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div x-show="isProductModalOpen" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" x-cloak>
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+            <h3 class="font-bold text-slate-800 text-lg" x-text="isEditMode ? 'Edit Produk' : 'Tambah Produk Baru'"></h3>
+            <div class="space-y-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div><label class="block text-xs font-semibold text-slate-600 mb-1">Nama Produk</label><input type="text" x-model="productForm.name" placeholder="Nama barang" class="w-full border rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"></div>
+                    <div><label class="block text-xs font-semibold text-slate-600 mb-1">Barcode / SKU (Opsional)</label><input type="text" x-model="productForm.barcode" placeholder="Ketik / scan barcode" class="w-full border rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block text-xs font-semibold text-slate-600 mb-1">Kategori</label><select x-model="productForm.category" class="w-full border rounded-xl px-3 py-2 text-sm"><option value="">Pilih Kategori</option><template x-for="cat in categories" :key="cat.id"><option :value="cat.name" x-text="cat.name"></option></template></select></div>
+                    <div><label class="block text-xs font-semibold text-slate-600 mb-1">Satuan</label><input type="text" x-model="productForm.unit" placeholder="Pcs/Kg" class="w-full border rounded-xl px-3 py-2 text-sm"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block text-xs font-semibold text-slate-600 mb-1">Harga Beli</label><input type="number" x-model.number="productForm.buyPrice" class="w-full border rounded-xl px-3 py-2 text-sm"></div>
+                    <div><label class="block text-xs font-semibold text-slate-600 mb-1">Harga Jual</label><input type="number" x-model.number="productForm.sellPrice" class="w-full border rounded-xl px-3 py-2 text-sm"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Gambar Produk</label>
+                            <input type="file" accept="image/*" @change="handleProductImage($event)" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+                            <div x-show="productForm.image" class="mt-2 flex items-center gap-3">
+                                <img :src="productForm.image" class="w-16 h-16 rounded-lg object-cover border border-slate-200">
+                                <button type="button" @click="productForm.image=''" class="text-xs text-rose-600 font-semibold">Hapus gambar</button>
+                            </div>
+                        </div>
+                        <div><label class="block text-xs font-semibold text-slate-600 mb-1">Stok Awal</label><input type="number" x-model.number="productForm.stock" class="w-full border rounded-xl px-3 py-2 text-sm"></div>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100">
+                <button @click="isProductModalOpen = false" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-sm font-semibold">Batal</button>
+                <button @click="saveProduct()" class="px-4 py-2 app-primary text-white rounded-xl text-sm font-semibold">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <div x-show="isCategoryModalOpen" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" x-cloak>
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl space-y-4">
+            <h3 class="font-bold text-slate-800 text-lg" x-text="isCategoryEditMode ? 'Edit Kategori' : 'Tambah Kategori'"></h3>
+            <div><label class="block text-xs font-semibold text-slate-600 mb-1">Nama Kategori</label><input type="text" x-model="categoryForm.name" class="w-full border rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"></div>
+            <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100">
+                <button @click="isCategoryModalOpen = false" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-sm font-semibold">Batal</button>
+                <button @click="saveCategory()" class="px-4 py-2 app-primary text-white rounded-xl text-sm font-semibold">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <div x-show="isStockModalOpen" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" x-cloak>
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+            <h3 class="font-bold text-slate-800 text-lg">Kelola Stok Masuk / Keluar</h3>
+            <div class="space-y-3">
+                <div><label class="block text-xs font-semibold text-slate-600 mb-1">Pilih Produk</label><select x-model="stockForm.productId" class="w-full border rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"><option value="">Pilih Produk</option><template x-for="prod in products" :key="prod.id"><option :value="prod.id" x-text="prod.name + ' (Stok: ' + prod.stock + ')'"></option></template></select></div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block text-xs font-semibold text-slate-600 mb-1">Tipe</label><select x-model="stockForm.type" class="w-full border rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"><option value="IN">Barang Masuk</option><option value="OUT">Barang Keluar</option></select></div>
+                    <div><label class="block text-xs font-semibold text-slate-600 mb-1">Jumlah</label><input type="number" x-model.number="stockForm.qty" class="w-full border rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"></div>
+                </div>
+                <div><label class="block text-xs font-semibold text-slate-600 mb-1">Keterangan</label><input type="text" x-model="stockForm.note" placeholder="Contoh: Restock / Rusak" class="w-full border rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"></div>
+            </div>
+            <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100">
+                <button @click="isStockModalOpen = false" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-sm font-semibold">Batal</button>
+                <button @click="saveStockAdjustment()" class="px-4 py-2 app-primary text-white rounded-xl text-sm font-semibold">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <div x-show="isUserModalOpen" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" x-cloak>
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl space-y-4">
+            <h3 class="font-bold text-slate-800 text-lg">Tambah Akun Pengguna</h3>
+            <div class="space-y-3">
+                <div><label class="block text-xs font-semibold text-slate-600 mb-1">Nama Lengkap</label><input type="text" x-model="userForm.name" class="w-full border rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"></div>
+                <div><label class="block text-xs font-semibold text-slate-600 mb-1">Username</label><input type="text" x-model="userForm.username" class="w-full border rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"></div>
+                <div><label class="block text-xs font-semibold text-slate-600 mb-1">Password</label><input type="password" x-model="userForm.password" class="w-full border rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"></div>
+                <div><label class="block text-xs font-semibold text-slate-600 mb-1">Role / Peran</label><select x-model="userForm.role" class="w-full border rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"><option value="kasir">Kasir</option><option value="admin">Admin</option></select></div>
+            </div>
+            <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100">
+                <button @click="isUserModalOpen = false" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-sm font-semibold">Batal</button>
+                <button @click="saveUser()" class="px-4 py-2 app-primary text-white rounded-xl text-sm font-semibold">Simpan Akun</button>
+            </div>
+        </div>
+    </div>
+
+    <div x-show="isDetailModalOpen" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" x-cloak>
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 text-base" x-text="'Detail Transaksi: ' + (selectedTrx?.id || '')"></h3>
+                <button @click="isDetailModalOpen = false" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="space-y-2 text-sm">
+                <div class="grid grid-cols-2 gap-2 text-xs bg-slate-50 p-3 rounded-xl">
+                    <p><span class="text-slate-500">Tanggal:</span> <span class="font-semibold text-slate-800" x-text="selectedTrx?.date"></span></p>
+                    <p><span class="text-slate-500">Kasir:</span> <span class="font-semibold text-slate-800" x-text="selectedTrx?.cashier"></span></p>
+                    <p><span class="text-slate-500">Metode:</span> <span class="font-bold app-text" x-text="selectedTrx?.method || 'Tunai'"></span></p>
+                    <p><span class="text-slate-500">Pelanggan:</span> <span class="font-semibold text-slate-800" x-text="selectedTrx?.customer || 'Umum'"></span></p>
+                </div>
+                <div class="pt-2">
+                    <p class="text-xs font-semibold text-slate-400 uppercase mb-2">Daftar Barang:</p>
+                    <div class="space-y-2 max-h-48 overflow-y-auto divide-y divide-slate-50">
+                        <template x-for="item in selectedTrx?.items" :key="item.name">
+                            <div class="pt-2 flex justify-between"><div><p class="font-semibold text-slate-800" x-text="item.name"></p><p class="text-xs text-slate-400" x-text="item.qty + ' x ' + formatIDR(item.sellPrice)"></p></div><span class="font-semibold text-slate-800" x-text="formatIDR(item.qty * item.sellPrice)"></span></div>
+                        </template>
+                    </div>
+                </div>
+                <div class="border-t border-slate-100 pt-3 flex justify-between font-bold text-base"><span>Total</span><span class="app-text" x-text="formatIDR(selectedTrx?.total)"></span></div>
+            </div>
+            <div class="flex flex-wrap justify-end gap-2 pt-3 border-t border-slate-100">
+                <button @click="shareReceiptWA(selectedTrx)" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-sm flex items-center space-x-1.5 transition"><i data-lucide="message-circle" class="w-4 h-4"></i><span>Kirim WA</span></button>
+                <button @click="copyReceiptText(selectedTrx)" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition"><i data-lucide="copy" class="w-4 h-4"></i><span>Salin Teks</span></button>
+                <button @click="printReceipt(selectedTrx); isDetailModalOpen = false;" class="px-4 py-2 app-primary text-white rounded-xl text-xs font-semibold shadow-md flex items-center space-x-1.5 transition"><i data-lucide="printer" class="w-4 h-4"></i><span>Cetak Struk</span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Daily Archive Detail Modal -->
+    <div x-show="isArchiveDetailModalOpen" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4" x-cloak>
+        <div class="bg-white rounded-2xl max-w-4xl w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] flex flex-col">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-start border-b border-slate-100 pb-3">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl app-soft app-text flex items-center justify-center font-bold">
+                        <i data-lucide="calendar" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-base sm:text-lg" x-text="'Arsip Rekap: ' + (selectedArchive?.dateFormatted || selectedArchive?.date)"></h3>
+                        <p class="text-xs text-slate-400 font-mono" x-text="'Kode Tanggal: ' + (selectedArchive?.date || '')"></p>
+                    </div>
+                </div>
+                <button @click="isArchiveDetailModalOpen = false" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                <div>
+                    <span class="text-slate-400 block text-[10px] uppercase font-semibold">Total Omzet</span>
+                    <span class="font-bold text-slate-800 text-sm" x-text="formatIDR(selectedArchive?.totalRevenue)"></span>
+                </div>
+                <div>
+                    <span class="text-slate-400 block text-[10px] uppercase font-semibold">Estimasi Laba</span>
+                    <span class="font-bold text-emerald-600 text-sm" x-text="formatIDR(selectedArchive?.totalProfit)"></span>
+                </div>
+                <div>
+                    <span class="text-slate-400 block text-[10px] uppercase font-semibold">Jumlah Transaksi</span>
+                    <span class="font-bold text-slate-800 text-sm" x-text="(selectedArchive?.transactions?.length || 0) + ' Transaksi'"></span>
+                </div>
+                <div>
+                    <span class="text-slate-400 block text-[10px] uppercase font-semibold">Total Item Terjual</span>
+                    <span class="font-bold text-slate-800 text-sm" x-text="(selectedArchive?.totalItemsSold || 0) + ' pcs'"></span>
+                </div>
+            </div>
+
+            <!-- Scrollable Transaction Table -->
+            <div class="flex-1 overflow-y-auto border border-slate-200 rounded-xl">
+                <table class="w-full text-left border-collapse">
+                    <thead class="sticky top-0 bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                        <tr>
+                            <th class="py-2.5 px-4">No. Transaksi</th>
+                            <th class="py-2.5 px-4">Waktu</th>
+                            <th class="py-2.5 px-4">Kasir</th>
+                            <th class="py-2.5 px-4">Pelanggan</th>
+                            <th class="py-2.5 px-4">Metode</th>
+                            <th class="py-2.5 px-4 text-right">Total</th>
+                            <th class="py-2.5 px-4 text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-xs">
+                        <template x-for="trx in selectedArchive?.transactions" :key="trx.id">
+                            <tr class="hover:bg-slate-50/80 transition-colors">
+                                <td class="py-3 px-4 font-semibold app-text" x-text="trx.id"></td>
+                                <td class="py-3 px-4 text-slate-600" x-text="trx.date"></td>
+                                <td class="py-3 px-4 text-slate-700" x-text="trx.cashier"></td>
+                                <td class="py-3 px-4 text-slate-700 font-medium" x-text="trx.customer || 'Umum'"></td>
+                                <td class="py-3 px-4">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                                          :class="trx.method === 'QRIS' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : (trx.method === 'Transfer' ? 'bg-sky-50 text-sky-700 border border-sky-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200')"
+                                          x-text="trx.method || 'Tunai'"></span>
+                                </td>
+                                <td class="py-3 px-4 font-bold text-slate-900 text-right" x-text="formatIDR(trx.total)"></td>
+                                <td class="py-3 px-4 text-center">
+                                    <div class="flex items-center justify-center space-x-1.5">
+                                        <button @click="viewTransactionDetail(trx)" class="p-1.5 bg-slate-100 hover:app-soft hover:app-text text-slate-600 rounded-lg transition" title="Lihat Detail Transaksi">
+                                            <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                        </button>
+                                        <button @click="printReceipt(trx)" class="p-1.5 bg-slate-100 hover:app-soft hover:app-text text-slate-600 rounded-lg transition" title="Cetak Struk">
+                                            <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Modal Footer with Actions -->
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-3 border-t border-slate-100">
+                <button @click="confirmDeleteDailyArchive(selectedArchive)" 
+                        class="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-semibold flex items-center justify-center space-x-1.5 transition border border-rose-200">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    <span>Hapus Arsip Hari Ini</span>
+                </button>
+
+                <div class="flex items-center space-x-2">
+                    <button @click="downloadDailyArchiveCSV(selectedArchive)" 
+                            class="flex-1 sm:flex-initial px-4 py-2 app-primary app-primary-hover text-white rounded-xl text-xs font-semibold shadow-md flex items-center justify-center space-x-1.5 transition">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        <span>Download CSV Hari Ini</span>
+                    </button>
+                    <button @click="isArchiveDetailModalOpen = false" 
+                            class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition">
+                        Tutup
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- QRIS Modal -->
+    <div x-show="isQrisModalOpen" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" x-cloak>
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                <h3 class="font-bold text-slate-800 text-base">Scan QRIS Toko</h3>
+                <button @click="isQrisModalOpen = false" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <p class="text-xs text-slate-500">Mendukung BCA, GoPay, OVO, DANA, LinkAja, ShopeePay & Semua Bank</p>
+            <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 flex flex-col items-center justify-center space-y-3">
+                <div class="w-44 h-44 bg-white p-2 border-2 border-dashed border-slate-300 rounded-xl flex items-center justify-center shadow-inner">
+                    <!-- SVG QR Code Dummy/Visual -->
+                    <svg viewBox="0 0 100 100" class="w-full h-full text-slate-900 fill-current">
+                        <rect width="100" height="100" fill="#ffffff" />
+                        <path d="M10 10h30v30h-30zM15 15v20h20v-20zM20 20h10v10h-10zM60 10h30v30h-30zM65 15v20h20v-20zM70 20h10v10h-10zM10 60h30v30h-30zM15 65v20h20v-20zM20 70h10v10h-10zM45 15h10v10h-10zM45 35h10v10h-10zM15 45h10v10h-10zM35 45h10v10h-10zM55 45h10v10h-10zM75 45h10v10h-10zM45 60h10v10h-10zM65 60h10v10h-10zM45 80h10v10h-10zM60 75h10v10h-10zM75 75h15v15h-15zM75 60h10v10h-10z" />
+                    </svg>
+                </div>
+                <div class="text-center">
+                    <p class="font-bold text-sm text-slate-800" x-text="settings.storeName"></p>
+                    <p class="text-xs font-semibold text-emerald-600 mt-0.5" x-text="'Nominal: ' + formatIDR(cartTotal)"></p>
+                </div>
+            </div>
+            <p class="text-[11px] text-slate-400">Pastikan pembeli telah menunjukkan bukti bayar sukses sebelum menyelesaikan transaksi.</p>
+            <button type="button" @click="isQrisModalOpen = false" class="w-full py-2.5 app-primary text-white font-bold rounded-xl text-xs shadow-md">Tutup QRIS</button>
+        </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div x-show="confirmModal.show" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" x-cloak>
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl space-y-4">
+            <h3 class="font-bold text-slate-800 text-lg" x-text="confirmModal.title"></h3>
+            <p class="text-sm text-slate-600" x-text="confirmModal.message"></p>
+            <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100">
+                <button @click="confirmModal.show = false" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-sm font-semibold">Batal</button>
+                <button @click="confirmModal.onConfirm(); confirmModal.show = false;" class="px-4 py-2 bg-rose-600 text-white rounded-xl text-sm font-semibold">Ya, Lanjutkan</button>
+            </div>
+        </div>
+    </div>
+
+    <div x-show="toast.show" x-transition class="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-xl flex items-center space-x-3 text-sm" x-cloak>
+        <i data-lucide="info" class="w-5 h-5 text-emerald-400"></i><span x-text="toast.message"></span>
+    </div>
+
+    <!-- Hidden Printable Receipt Template -->
+    <div id="printable-receipt" class="hidden p-6 max-w-xs mx-auto text-slate-800 text-xs font-mono">
+        <div class="text-center space-y-1 mb-4"><h2 class="font-bold text-sm" x-text="settings.storeName"></h2><p x-text="settings.address"></p><p x-text="'Telp: ' + settings.phone"></p></div>
+        <div class="border-b border-dashed border-slate-400 pb-2 mb-2"><p x-text="'No: ' + (receiptData?.id || '')"></p><p x-text="'Tgl: ' + (receiptData?.date || '')"></p><p x-text="'Kasir: ' + (receiptData?.cashier || '')"></p></div>
+        <div class="space-y-1 border-b border-dashed border-slate-400 pb-2 mb-2">
+            <template x-for="item in receiptData?.items"><div><div class="flex justify-between"><span x-text="item.name"></span><span x-text="formatIDR(item.qty * item.sellPrice)"></span></div><div class="text-slate-500 text-[10px]" x-text="item.qty + ' x ' + formatIDR(item.sellPrice)"></div></div></template>
+        </div>
+        <div class="space-y-1 border-b border-dashed border-slate-400 pb-2 mb-2">
+            <div class="flex justify-between"><span>Subtotal</span><span x-text="formatIDR(receiptData?.subtotal || 0)"></span></div>
+            <div class="flex justify-between"><span>Diskon</span><span x-text="formatIDR(receiptData?.discount || 0)"></span></div>
+            <div class="flex justify-between font-bold"><span>Total</span><span x-text="formatIDR(receiptData?.total || 0)"></span></div>
+            <div class="flex justify-between"><span>Tunai</span><span x-text="formatIDR(receiptData?.cash || 0)"></span></div>
+            <div class="flex justify-between"><span>Kembali</span><span x-text="formatIDR(receiptData?.change || 0)"></span></div>
+        </div>
+        <div class="text-center text-[10px] text-slate-500 space-y-1"><p x-text="settings.receiptNote"></p><p>*** TERIMA KASIH ***</p></div>
+    </div>
+
+    <script>
+        window.__gas_url = 'https://script.google.com/macros/s/AKfycbxsz6y-U5lViCmWP-E_bJZ7VneJuEG1PIfqP7jaU1jyWperqpheClf191FBXH4L6Zbq/exec';
+
+        function posApp() {
+            return {
+                isLoggedIn: false, currentUser: { username: '', name: '', role: '', profileImage: '' }, loginForm: { username: '', password: '' },
+                activeTab: 'dashboard', mobileMenuOpen: false,
+                tabs: [
+                    { id: 'dashboard', name: 'Dashboard', icon: 'layout-dashboard', roles: ['admin','kasir'] },
+                    { id: 'kasir', name: 'Kasir / POS', icon: 'shopping-cart', roles: ['admin','kasir'] },
+                    { id: 'produk', name: 'Produk', icon: 'package', roles: ['admin'] },
+                    { id: 'kategori', name: 'Kategori', icon: 'tags', roles: ['admin'] },
+                    { id: 'riwayat', name: 'Riwayat Transaksi', icon: 'history', roles: ['admin','kasir'] },
+                    { id: 'laporan', name: 'Laporan', icon: 'bar-chart-3', roles: ['admin'] },
+                    { id: 'stok', name: 'Stok', icon: 'boxes', roles: ['admin'] },
+                    { id: 'pengaturan', name: 'Pengaturan', icon: 'settings', roles: ['admin'] }
+                ],
+                users: [{ username: 'admin', password: 'admin123', name: 'Administrator', role: 'admin', profileImage: '' }, { username: 'kasir', password: 'kasir123', name: 'Kasir Utama', role: 'kasir', profileImage: '' }],
+                settings: { storeName: 'KOPMA Store', address: 'Gedung Koperasi Mahasiswa', phone: '081234567890', receiptNote: 'Terima kasih telah berbelanja di KOPMA.', theme: 'emerald', soundEnabled: true, bankAccount: 'BCA 1234567890 a/n KOPMA' },
+                themeOptions: [
+                    {key:'emerald', name:'Hijau', color:'#059669', dark:'#047857', soft:'#ecfdf5'},
+                    {key:'blue', name:'Biru', color:'#2563eb', dark:'#1d4ed8', soft:'#eff6ff'},
+                    {key:'purple', name:'Ungu', color:'#7c3aed', dark:'#6d28d9', soft:'#f5f3ff'},
+                    {key:'orange', name:'Oranye', color:'#ea580c', dark:'#c2410c', soft:'#fff7ed'},
+                    {key:'rose', name:'Merah Muda', color:'#e11d48', dark:'#be123c', soft:'#fff1f2'},
+                    {key:'slate', name:'Abu-abu', color:'#475569', dark:'#334155', soft:'#f8fafc'}
+                ],
+                categories: [], products: [], transactions: [], dailyArchives: [], permanentHistory: [], stockLogs: [], deletedStockLogIds: [],
+                historySubTab: 'active', archiveSearch: '', isArchiveDetailModalOpen: false, selectedArchive: null,
+                gasUrlInput: window.__gas_url, isSyncing: false, dbSyncReady: false, gasLastError: '',
+                posSearch: '', posCategoryFilter: '', cart: [], posDiscount: 0, posCash: 0, posPaymentMethod: 'Tunai', posCustomerName: '',
+                productSearch: '', productFilterStock: 'all', productSortBy: 'name', historySearch: '', reportFilter: 'all',
+                toast: { show: false, message: '' }, confirmModal: { show: false, title: '', message: '', onConfirm: () => {} },
+                currentDateStr: '', currentTimeStr: '', receiptData: null,
+                isProductModalOpen: false, isEditMode: false, productForm: {}, productImageRefresh: 0,
+                isCategoryModalOpen: false, isCategoryEditMode: false, categoryForm: {},
+                isStockModalOpen: false, stockForm: { productId: '', type: 'IN', qty: 1, note: '' },
+                isUserModalOpen: false, userForm: {}, isDetailModalOpen: false, selectedTrx: null, isProfileModalOpen: false, profileTarget: 'dashboard',
+                isQrisModalOpen: false,
+
+                refreshIcons() {
+                    setTimeout(() => {
+                        if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                            window.lucide.createIcons();
+                        }
+                    }, 50);
+                },
+
+                switchTab(tabId) {
+                    if (this.activeTab === tabId) return;
+                    this.activeTab = tabId;
+                    this.playSound('tap');
+                    this.refreshIcons();
+                },
+
+                init() {
+                    this.updateDateTime(); 
+                    this.loadLocalStorage();
+                    this.checkAutoDailyReset();
+                    setInterval(() => {
+                        this.updateDateTime();
+                        this.checkAutoDailyReset();
+                    }, 10000);
+                    if (!this.settings.theme) this.settings.theme = 'emerald';
+                    this.applyTheme();
+                    try {
+                        const s = JSON.parse(sessionStorage.getItem('pos_session') || 'null');
+                        const u = s && this.users.find(x => x.username === s.username);
+                        if (u) { this.currentUser = {...u}; this.isLoggedIn = true; if (u.role !== 'admin' && !['dashboard','kasir','riwayat'].includes(this.activeTab)) this.activeTab = 'dashboard'; }
+                    } catch (_) {}
+                    const savedGasUrl = localStorage.getItem('pos_gasUrl');
+                    if (savedGasUrl) this.gasUrlInput = savedGasUrl;
+                    this.initGasSync();
+                    window.addEventListener('online', () => this.showToast('Koneksi internet aktif.'));
+                    window.addEventListener('offline', () => this.showToast('Offline: transaksi tetap disimpan di perangkat.'));
+                    window.addEventListener('keydown', (e) => {
+                        if (e.key === 'F2') {
+                            e.preventDefault();
+                            this.activeTab = 'kasir';
+                            const input = document.getElementById('pos-search-input');
+                            if (input) input.focus();
+                        } else if (e.key === 'F4') {
+                            e.preventDefault();
+                            if (this.activeTab === 'kasir' && this.cart.length > 0 && this.posChange >= 0) {
+                                this.processCheckout();
+                            }
+                        } else if (e.key === 'F8') {
+                            e.preventDefault();
+                            if (this.activeTab === 'kasir') this.clearCart();
+                        }
+                    });
+                    
+                    // Auto-refresh icons whenever tab changes or modal toggles
+                    this.$watch('activeTab', () => this.refreshIcons());
+                    this.$watch('isLoggedIn', () => this.refreshIcons());
+                    this.$watch('isProductModalOpen', () => this.refreshIcons());
+                    this.$watch('isCategoryModalOpen', () => this.refreshIcons());
+                    this.$watch('isStockModalOpen', () => this.refreshIcons());
+                    this.$watch('isUserModalOpen', () => this.refreshIcons());
+                    this.$watch('isDetailModalOpen', () => this.refreshIcons());
+                    this.$watch('isProfileModalOpen', () => this.refreshIcons());
+                    this.$watch('isQrisModalOpen', () => this.refreshIcons());
+                    this.refreshIcons();
+
+                    // AUTO-REFRESH TIAP 10 DETIK DARI GOOGLE SHEETS
+                    setInterval(() => {
+                        if (this.gasUrlInput && !this.isSyncing) {
+                            this.initGasSync(false);
+                        }
+                    }, 10000); 
+                },
+
+                playSound(type) {
+                    if (!this.settings || this.settings.soundEnabled === false) return;
+                    try {
+                        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                        if (!AudioCtx) return;
+                        const ctx = new AudioCtx();
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        if (type === 'beep') {
+                            osc.type = 'sine';
+                            osc.frequency.setValueAtTime(900, ctx.currentTime);
+                            gain.gain.setValueAtTime(0.12, ctx.currentTime);
+                            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+                            osc.start();
+                            osc.stop(ctx.currentTime + 0.08);
+                        } else if (type === 'tap') {
+                            osc.type = 'sine';
+                            osc.frequency.setValueAtTime(650, ctx.currentTime);
+                            gain.gain.setValueAtTime(0.05, ctx.currentTime);
+                            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+                            osc.start();
+                            osc.stop(ctx.currentTime + 0.05);
+                        } else if (type === 'success') {
+                            osc.type = 'triangle';
+                            osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+                            osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
+                            gain.gain.setValueAtTime(0.18, ctx.currentTime);
+                            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.28);
+                            osc.start();
+                            osc.stop(ctx.currentTime + 0.28);
+                        }
+                    } catch (_) {}
+                },
+
+                // DATABASE SYNC (GOOGLE SHEETS)
+                normalizeGasUrl(url) {
+                    return String(url || '').trim().replace(/\/$/, '');
+                },
+                saveGasUrl() {
+                    this.gasUrlInput = this.normalizeGasUrl(this.gasUrlInput);
+                    if (!this.gasUrlInput) return this.showToast('URL Google Apps Script belum diisi.');
+                    localStorage.setItem('pos_gasUrl', this.gasUrlInput);
+                    this.dbSyncReady = false;
+                    this.showToast('URL Google Sheets disimpan. Silakan Tes Koneksi.');
+                },
+                async testGasConnection() {
+                    this.gasUrlInput = this.normalizeGasUrl(this.gasUrlInput);
+                    if (!this.gasUrlInput) return this.showToast('URL Google Apps Script belum diisi.');
+                    localStorage.setItem('pos_gasUrl', this.gasUrlInput);
+                    const controller = new AbortController();
+                    const timeout = setTimeout(() => controller.abort(), 15000);
+                    try {
+                        const sep = this.gasUrlInput.includes('?') ? '&' : '?';
+                        const res = await fetch(this.gasUrlInput + sep + '_ping=' + Date.now(), { method:'GET', cache:'no-store', signal:controller.signal });
+                        if (!res.ok) throw new Error('HTTP ' + res.status);
+                        const text = await res.text();
+                        let data = null;
+                        try { data = JSON.parse(text); } catch (_) {}
+                        if (!data || data.error) throw new Error(data?.error || 'Respons Apps Script bukan JSON yang valid.');
+                        this.dbSyncReady = true;
+                        this.gasLastError = '';
+                        this.showToast('Koneksi Google Sheets berhasil.');
+                        return true;
+                    } catch (e) {
+                        this.dbSyncReady = false;
+                        this.gasLastError = e.name === 'AbortError' ? 'Waktu koneksi habis.' : (e.message || 'Koneksi gagal.');
+                        this.showToast('Koneksi gagal: ' + this.gasLastError);
+                        return false;
+                    } finally { clearTimeout(timeout); }
+                },
+                async initGasSync(manual = false) {
+                    if (!this.gasUrlInput || this.isSyncing) return;
+                    this.gasUrlInput = this.normalizeGasUrl(this.gasUrlInput);
+                    this.isSyncing = true;
+                    const controller = new AbortController();
+                    const timeout = setTimeout(() => controller.abort(), 15000);
+                    try {
+                        const sep = this.gasUrlInput.includes('?') ? '&' : '?';
+                        const res = await fetch(this.gasUrlInput + sep + '_ts=' + Date.now(), {
+                            method: 'GET', cache: 'no-store', signal: controller.signal
+                        });
+                        if (!res.ok) throw new Error('HTTP ' + res.status);
+                        const text = await res.text();
+                        let dbData;
+                        try { dbData = JSON.parse(text); } catch (_) { throw new Error('Respons Apps Script bukan JSON. Pastikan deployment sebagai Web App dan URL berakhiran /exec.'); }
+                        if (dbData.error) throw new Error(dbData.error);
+
+                        if (Array.isArray(dbData.products)) {
+                            const localById = Object.fromEntries(this.products.map(p => [String(p.id), p]));
+                            this.products = dbData.products.map(p => {
+                                const local = localById[String(p.id)];
+                                if ((!p.image || p.image === '') && local && local.image) p.image = local.image;
+                                return p;
+                            });
+                        }
+                        if (Array.isArray(dbData.categories)) this.categories = dbData.categories;
+                        if (Array.isArray(dbData.transactions)) this.transactions = dbData.transactions.sort((a,b) => new Date(b.date) - new Date(a.date));
+                        if (Array.isArray(dbData.permanentHistory)) this.permanentHistory = dbData.permanentHistory;
+                        if (Array.isArray(dbData.stockLogs)) {
+                            const deleted = new Set((this.deletedStockLogIds || []).map(String));
+                            this.stockLogs = dbData.stockLogs.filter(l => !deleted.has(String(l.id)));
+                        }
+                        if (Array.isArray(dbData.users)) this.users = dbData.users;
+                        if (Array.isArray(dbData.settings) && dbData.settings.length) this.settings = dbData.settings[0];
+
+                        this.saveLocalStorage();
+                        this.dbSyncReady = true;
+                        this.gasLastError = '';
+                        this.refreshIcons();
+                        if (manual) this.showToast('Data berhasil diperbarui dari Google Sheets.');
+                    } catch (e) {
+                        this.dbSyncReady = false;
+                        this.gasLastError = e.name === 'AbortError' ? 'Waktu koneksi habis.' : (e.message || 'Koneksi gagal.');
+                        if (manual) this.showToast('Google Sheets tidak terhubung: ' + this.gasLastError);
+                    } finally {
+                        clearTimeout(timeout);
+                        this.isSyncing = false;
+                    }
+                },
+                async syncToGas(colName, docId, data) {
+                    if (!this.gasUrlInput) return false;
+                    try {
+                        const res = await fetch(this.gasUrlInput, {
+                            method: 'POST',
+                            headers: {'Content-Type': 'text/plain;charset=utf-8'},
+                            body: JSON.stringify({ action: 'set', collection: colName, id: String(docId), data: data }),
+                            keepalive: true
+                        });
+                        return res.ok;
+                    } catch (e) { return false; }
+                },
+                async deleteFromGas(colName, docId) {
+                    if (!this.gasUrlInput) return false;
+                    for (let attempt = 1; attempt <= 3; attempt++) {
+                        try {
+                            const res = await fetch(this.gasUrlInput, {
+                                method: 'POST',
+                                headers: {'Content-Type': 'text/plain;charset=utf-8'},
+                                body: JSON.stringify({ action: 'delete', collection: colName, id: String(docId) })
+                            });
+                            if (res.ok) {
+                                let payload = null;
+                                try { payload = await res.json(); } catch (_) {}
+                                if (!payload || payload.success !== false) return true;
+                            }
+                        } catch (e) {}
+                        await new Promise(r => setTimeout(r, 700 * attempt));
+                    }
+                    return false;
+                },
+                async clearStockLogsCloud(logs) {
+                    if (!this.gasUrlInput) return {ok: false, failed: logs.length};
+                    let failed = 0;
+                    for (const log of logs) {
+                        const ok = await this.deleteFromGas('stockLogs', log.id);
+                        if (!ok) failed++;
+                    }
+                    return {ok: failed === 0, failed};
+                },
+
+                // UTILITIES
+                get loginPreviewUser() {
+                    const u = this.users.find(x => x.username === String(this.loginForm.username || '').trim());
+                    return u || null;
+                },
+                openProfileModal(target='dashboard') { this.profileTarget = target; this.isProfileModalOpen = true; this.refreshIcons(); },
+                async handleProfileImage(event, target='dashboard') {
+                    const targetUser = target==='login' ? this.loginPreviewUser : this.currentUser;
+                    if (!targetUser || targetUser.role !== 'admin') { this.showToast('Hanya Admin yang dapat mengganti foto profil.'); event.target.value=''; return; }
+                    const file = event.target.files && event.target.files[0];
+                    if (!file) return;
+                    if (!file.type.startsWith('image/')) return this.showToast('File harus berupa gambar.');
+                    if (file.size > 8 * 1024 * 1024) return this.showToast('Ukuran foto maksimal 8 MB.');
+                    try {
+                        const dataUrl = await new Promise((resolve,reject) => { const r=new FileReader(); r.onload=()=>resolve(r.result); r.onerror=reject; r.readAsDataURL(file); });
+                        const img = await new Promise((resolve,reject) => { const im=new Image(); im.onload=()=>resolve(im); im.onerror=reject; im.src=dataUrl; });
+                        const maxSize=700, scale=Math.min(1,maxSize/Math.max(img.naturalWidth||img.width,img.naturalHeight||img.height));
+                        const canvas=document.createElement('canvas'); canvas.width=Math.max(1,Math.round((img.naturalWidth||img.width)*scale)); canvas.height=Math.max(1,Math.round((img.naturalHeight||img.height)*scale));
+                        const ctx=canvas.getContext('2d'); ctx.drawImage(img,0,0,canvas.width,canvas.height);
+                        let compressed=canvas.toDataURL('image/jpeg',0.78); if(compressed.length>45000) compressed=canvas.toDataURL('image/jpeg',0.58);
+                        let username = target==='login' ? String(this.loginForm.username||'').trim() : this.currentUser.username;
+                        const user=this.users.find(u=>u.username===username);
+                        if(!user) return this.showToast('Masukkan username terlebih dahulu untuk memilih foto profil.');
+                        user.profileImage=compressed;
+                        if(this.currentUser.username===username) this.currentUser={...user};
+                        this.saveLocalStorage(); await this.syncToGas('users', user.username, user);
+                        if(target==='dashboard') this.isProfileModalOpen=false;
+                        this.showToast('Foto profil berhasil diperbarui.');
+                        this.refreshIcons();
+                    } catch(e) { this.showToast('Gagal memproses foto profil.'); }
+                    event.target.value='';
+                },
+                removeProfileImage() {
+                    if (this.currentUser.role !== 'admin') return this.showToast('Hanya Admin yang dapat mengubah foto profil.');
+                    const user=this.users.find(u=>u.username===this.currentUser.username); if(!user) return;
+                    delete user.profileImage; this.currentUser={...user}; this.saveLocalStorage(); this.syncToGas('users',user.username,user); this.showToast('Foto profil dihapus.');
+                },
+                confirmClearStockLogs() {
+                    if (this.currentUser.role !== 'admin') return this.showToast('Hanya Admin yang dapat menghapus riwayat stok.');
+                    if(this.stockLogs.length===0) return this.showToast('Riwayat perubahan stok sudah kosong.');
+                    this.openConfirm('Hapus Riwayat Perubahan Stok','Semua riwayat perubahan stok akan dihapus. Data yang sudah dihapus tidak akan ditampilkan kembali.', async () => {
+                        const logs=[...this.stockLogs];
+                        const ids = new Set(this.deletedStockLogIds || []);
+                        logs.forEach(l => ids.add(String(l.id)));
+                        this.deletedStockLogIds = Array.from(ids);
+                        this.stockLogs = [];
+                        this.saveLocalStorage();
+                        const result = await this.clearStockLogsCloud(logs);
+                        this.saveLocalStorage();
+                        if (result.failed) {
+                            this.showToast(`Riwayat dihapus dari tampilan. ${result.failed} data cloud gagal dihapus, akan dicoba lagi.`);
+                        } else {
+                            this.showToast('Riwayat perubahan stok berhasil dihapus.');
+                        }
+                        await this.initGasSync(false);
+                    });
+                },
+                handleLogin() {
+                    const username = String(this.loginForm.username || '').trim();
+                    const password = String(this.loginForm.password || '');
+                    const found = this.users.find(u => u.username === username && u.password === password);
+                    if (found) {
+                        this.currentUser = {...found};
+                        if (found.role !== 'admin') this.activeTab = 'dashboard';
+                        this.isLoggedIn = true;
+                        sessionStorage.setItem('pos_session', JSON.stringify({username: found.username, name: found.name, role: found.role}));
+                        this.loginForm.password = '';
+                        this.showToast('Login berhasil sebagai ' + found.name);
+                        this.refreshIcons();
+                    } else this.showToast('Username/password salah!');
+                },
+                logout() {
+                    this.isLoggedIn = false;
+                    this.currentUser = { username: '', name: '', role: '', profileImage: '' };
+                    sessionStorage.removeItem('pos_session');
+                    this.activeTab = 'dashboard';
+                    this.refreshIcons();
+                },
+                get filteredTabs() {
+                    const role = this.currentUser?.role || '';
+                    return this.tabs.filter(t => !t.roles || t.roles.includes(role));
+                },
+                showToast(msg) { this.toast.message = msg; this.toast.show = true; setTimeout(() => this.toast.show = false, 3000); },
+                openConfirm(title, msg, callback) { this.confirmModal = { show: true, title: title, message: msg, onConfirm: callback }; },
+                loadLocalStorage() {
+                    ['products','categories','transactions','dailyArchives','permanentHistory','stockLogs','deletedStockLogIds','settings','users'].forEach(k => {
+                        if(localStorage.getItem('pos_'+k)) this[k] = JSON.parse(localStorage.getItem('pos_'+k));
+                    });
+                    const savedGasUrl = localStorage.getItem('pos_gasUrl');
+                    if (savedGasUrl) this.gasUrlInput = this.normalizeGasUrl(savedGasUrl);
+                },
+                saveLocalStorage() {
+                    ['products','categories','transactions','dailyArchives','permanentHistory','stockLogs','deletedStockLogIds','settings','users'].forEach(k => {
+                        localStorage.setItem('pos_'+k, JSON.stringify(this[k]));
+                    });
+                },
+                updateDateTime() { const d = new Date(); this.currentDateStr = d.toLocaleDateString('id-ID', {weekday:'long',year:'numeric',month:'long',day:'numeric'}); this.currentTimeStr = d.toLocaleTimeString('id-ID'); },
+                formatIDR(num) { return new Intl.NumberFormat('id-ID', {style:'currency',currency:'IDR',maximumFractionDigits:0}).format(num||0); },
+
+                // KASIR & DASHBOARD
+                get filteredPosProducts() { return this.products.filter(p => (p.name.toLowerCase().includes(this.posSearch.toLowerCase()) || (p.barcode && p.barcode.toLowerCase().includes(this.posSearch.toLowerCase())) || String(p.id).toLowerCase().includes(this.posSearch.toLowerCase())) && (this.posCategoryFilter==='' || p.category===this.posCategoryFilter)); },
+                
+                scanBarcodeOrAdd() {
+                    const query = String(this.posSearch || '').trim().toLowerCase();
+                    if (!query) return;
+                    const matched = this.products.find(p => (p.barcode && p.barcode.toLowerCase() === query) || String(p.id).toLowerCase() === query || p.name.toLowerCase() === query);
+                    if (matched) {
+                        this.addToCart(matched);
+                        this.posSearch = '';
+                    } else if (this.filteredPosProducts.length === 1) {
+                        this.addToCart(this.filteredPosProducts[0]);
+                        this.posSearch = '';
+                    } else {
+                        this.showToast('Produk tidak ditemukan untuk barcode/nama tersebut.');
+                    }
+                },
+
+                addToCart(prod) { 
+                    if(prod.stock <= 0) return this.showToast('Stok habis!');
+                    const ex = this.cart.find(i => i.id === prod.id); 
+                    if(ex) { 
+                        if (ex.qty < prod.stock) {
+                            ex.qty++; 
+                            this.playSound('beep');
+                        } else {
+                            this.showToast('Stok tidak cukup!'); 
+                        }
+                    } else {
+                        this.cart.push({...prod, qty: 1}); 
+                        this.playSound('beep');
+                    }
+                },
+                updateCartQty(idx, delta) { 
+                    const item = this.cart[idx]; const prod = this.products.find(p => p.id === item.id);
+                    const newQty = item.qty + delta;
+                    if(newQty > 0) { 
+                        if (prod && newQty <= prod.stock) {
+                            item.qty = newQty; 
+                            this.playSound('beep');
+                        } else {
+                            this.showToast('Stok maksimum tercapai!'); 
+                        }
+                    } else {
+                        this.cart.splice(idx, 1); 
+                    }
+                },
+                removeFromCart(idx) { this.cart.splice(idx, 1); }, 
+                clearCart() { 
+                    this.cart = []; 
+                    this.posDiscount = 0; 
+                    this.posCash = 0; 
+                    this.posCustomerName = '';
+                    this.posPaymentMethod = 'Tunai';
+                },
+                setQuickCash(val) {
+                    if (val === 'exact') {
+                        this.posCash = this.cartTotal;
+                    } else {
+                        this.posCash = (this.posCash || 0) + Number(val);
+                    }
+                },
+                get cartSubtotal() { return this.cart.reduce((s, i) => s + (i.sellPrice * i.qty), 0); },
+                get cartTotal() { return Math.max(0, this.cartSubtotal - Math.min(this.cartSubtotal, Math.max(0, Number(this.posDiscount)||0))); },
+                get posChange() { 
+                    if (this.posPaymentMethod !== 'Tunai') return 0;
+                    return (this.posCash || 0) - this.cartTotal; 
+                },
+                get stats() { 
+                    const now = new Date();
+                    const todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+                    const todayTrxs = this.transactions.filter(t => t.date.startsWith(todayStr));
+                    const tSales = todayTrxs.reduce((s, t) => s + t.total, 0); 
+                    const tItems = todayTrxs.reduce((s, t) => s + t.items.reduce((sum, i) => sum + i.qty, 0), 0);
+                    const tProfit = todayTrxs.reduce((s, t) => {
+                        const totalCost = (t.items || []).reduce((c, item) => c + ((Number(item.buyPrice) || 0) * (Number(item.qty) || 1)), 0);
+                        return s + Math.max(0, t.total - totalCost);
+                    }, 0);
+                    return { todaySales: tSales, todayTransactions: todayTrxs.length, todayItemsSold: tItems, todayProfit: tProfit }; 
+                },
+                get lowStockProducts() { return this.products.filter(p => p.stock < 5); },
+                
+                processCheckout() {
+                    if (this.cart.length === 0) return;
+                    if (this.posPaymentMethod === 'Tunai' && this.posChange < 0) {
+                        return this.showToast('Uang pembayaran tunai masih kurang!');
+                    }
+                    const now = new Date();
+                    const stamp = now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + String(now.getHours()).padStart(2,'0') + String(now.getMinutes()).padStart(2,'0') + String(now.getSeconds()).padStart(2,'0');
+                    const trxId = 'TRX-' + stamp + '-' + Math.floor(10 + Math.random()*90);
+                    const dateStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0') + ' ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+                    const cashPaid = this.posPaymentMethod === 'Tunai' ? (this.posCash || this.cartTotal) : this.cartTotal;
+                    const changeAmt = this.posPaymentMethod === 'Tunai' ? this.posChange : 0;
+                    
+                    const newTrx = { 
+                        id: trxId, 
+                        date: dateStr, 
+                        cashier: this.currentUser.name, 
+                        customer: this.posCustomerName.trim() || 'Umum',
+                        method: this.posPaymentMethod || 'Tunai', 
+                        subtotal: this.cartSubtotal, 
+                        discount: this.posDiscount||0, 
+                        total: this.cartTotal, 
+                        cash: cashPaid, 
+                        change: changeAmt, 
+                        items: JSON.parse(JSON.stringify(this.cart)) 
+                    };
+                    
+                    this.cart.forEach(c => { 
+                        const p = this.products.find(x => x.id === c.id); 
+                        if(p) { 
+                            p.stock -= c.qty; this.syncToGas('products', p.id, p); 
+                            const log = { id: Date.now() + Math.random(), date: dateStr, productName: p.name, type: 'OUT', qty: c.qty, note: 'Penjualan ' + trxId };
+                            this.stockLogs.unshift(log); this.syncToGas('stockLogs', log.id, log);
+                        }
+                    });
+                    
+                    this.transactions.unshift(newTrx); this.syncToGas('transactions', newTrx.id, newTrx);
+                    if(!this.permanentHistory.some(p => p.id === newTrx.id)) { this.permanentHistory.push(newTrx); this.syncToGas('permanentHistory', newTrx.id, newTrx); }
+                    
+                    this.receiptData = newTrx; 
+                    this.saveLocalStorage(); 
+                    this.playSound('success');
+                    this.showToast('Transaksi berhasil disimpan!');
+                    setTimeout(() => window.print(), 300); 
+                    this.clearCart();
+                },
+
+                shareReceiptWA(trx) {
+                    const t = trx || this.receiptData || this.selectedTrx;
+                    if (!t) return this.showToast('Data transaksi tidak ditemukan.');
+                    let text = `*NOTA PEMBELIAN - ${this.settings.storeName}*\n`;
+                    text += `No. Transaksi : ${t.id}\n`;
+                    text += `Tanggal       : ${t.date}\n`;
+                    text += `Kasir         : ${t.cashier}\n`;
+                    if (t.customer && t.customer !== 'Umum') text += `Pelanggan     : ${t.customer}\n`;
+                    text += `Metode Bayar  : ${t.method || 'Tunai'}\n`;
+                    text += `--------------------------------\n`;
+                    (t.items || []).forEach(item => {
+                        text += `${item.name}\n  ${item.qty} x ${this.formatIDR(item.sellPrice)} = ${this.formatIDR(item.qty * item.sellPrice)}\n`;
+                    });
+                    text += `--------------------------------\n`;
+                    text += `Subtotal : ${this.formatIDR(t.subtotal || t.total)}\n`;
+                    if (t.discount > 0) text += `Diskon   : -${this.formatIDR(t.discount)}\n`;
+                    text += `*TOTAL   : ${this.formatIDR(t.total)}*\n`;
+                    if (t.method === 'Tunai') {
+                        text += `Tunai    : ${this.formatIDR(t.cash || t.total)}\n`;
+                        text += `Kembali  : ${this.formatIDR(t.change || 0)}\n`;
+                    }
+                    text += `--------------------------------\n`;
+                    text += `${this.settings.receiptNote || 'Terima kasih telah berbelanja!'}\n`;
+                    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+                    window.open(url, '_blank');
+                },
+
+                copyReceiptText(trx) {
+                    const t = trx || this.receiptData || this.selectedTrx;
+                    if (!t) return;
+                    let text = `NOTA ${this.settings.storeName}\nNo: ${t.id}\nTgl: ${t.date}\nTotal: ${this.formatIDR(t.total)}`;
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(text);
+                        this.showToast('Teks struk berhasil disalin!');
+                    }
+                },
+
+                // PRODUK
+                get filteredProducts() { 
+                    return this.products
+                        .filter(p => {
+                            const term = this.productSearch.toLowerCase();
+                            const matchesSearch = p.name.toLowerCase().includes(term) || (p.barcode && p.barcode.toLowerCase().includes(term)) || String(p.id).toLowerCase().includes(term);
+                            if (!matchesSearch) return false;
+                            if (this.productFilterStock === 'low') return p.stock > 0 && p.stock < 5;
+                            if (this.productFilterStock === 'empty') return p.stock <= 0;
+                            return true;
+                        })
+                        .sort((a, b) => {
+                            if (this.productSortBy === 'price_asc') return a.sellPrice - b.sellPrice;
+                            if (this.productSortBy === 'price_desc') return b.sellPrice - a.sellPrice;
+                            if (this.productSortBy === 'stock_asc') return a.stock - b.stock;
+                            if (this.productSortBy === 'stock_desc') return b.stock - a.stock;
+                            return a.name.localeCompare(b.name);
+                        });
+                },
+                openProductModal() { this.isEditMode = false; this.productForm = { id: 'P'+Date.now().toString().slice(-4), name:'', barcode:'', category:this.categories[0]?.name||'', buyPrice:0, sellPrice:0, stock:10, unit:'Pcs', image:'' }; this.isProductModalOpen = true; this.refreshIcons(); },
+                editProduct(p) { this.isEditMode = true; this.productForm = { barcode:'', ...p }; this.isProductModalOpen = true; this.refreshIcons(); },
+                async saveProduct() {
+                    if(!this.productForm.name || !this.productForm.category) return this.showToast('Nama & Kategori wajib diisi');
+                    if (this.isEditMode) { const idx = this.products.findIndex(p => p.id === this.productForm.id); if (idx !== -1) this.products[idx] = {...this.productForm}; } 
+                    else { 
+                        this.products.push({...this.productForm}); 
+                        const log = { id: Date.now(), date: new Date().getFullYear() + '-' + String(new Date().getMonth()+1).padStart(2,'0') + '-' + String(new Date().getDate()).padStart(2,'0') + ' ' + String(new Date().getHours()).padStart(2,'0') + ':' + String(new Date().getMinutes()).padStart(2,'0'), productName: this.productForm.name, type: 'IN', qty: this.productForm.stock, note: 'Stok awal produk baru' };
+                        this.stockLogs.unshift(log); this.syncToGas('stockLogs', log.id, log);
+                    }
+                    this.saveLocalStorage();
+                    const synced = await this.syncToGas('products', this.productForm.id, this.productForm);
+                    this.isProductModalOpen = false;
+                    this.showToast(synced ? 'Produk & foto berhasil disimpan.' : 'Produk tersimpan di perangkat. Cloud belum menerima foto.');
+                    this.refreshIcons();
+                },
+                confirmDeleteProduct(id) { this.openConfirm('Hapus Produk', 'Yakin menghapus produk ini?', () => { this.products = this.products.filter(p => p.id !== id); this.deleteFromGas('products', id); this.saveLocalStorage(); this.showToast('Produk dihapus.');}); },
+
+                // KATEGORI
+                openCategoryModal() { this.isCategoryEditMode = false; this.categoryForm = { id: null, name: '' }; this.isCategoryModalOpen = true; this.refreshIcons(); },
+                editCategory(c) { this.isCategoryEditMode = true; this.categoryForm = {...c}; this.isCategoryModalOpen = true; this.refreshIcons(); },
+                saveCategory() {
+                    if(!this.categoryForm.name) return;
+                    if(this.isCategoryEditMode) { const idx = this.categories.findIndex(c => c.id === this.categoryForm.id); if (idx !== -1) this.categories[idx] = {...this.categoryForm}; }
+                    else { this.categoryForm.id = Date.now(); this.categories.push({...this.categoryForm}); }
+                    this.syncToGas('categories', this.categoryForm.id, this.categoryForm); this.saveLocalStorage(); this.isCategoryModalOpen = false; this.showToast('Kategori disimpan.');
+                    this.refreshIcons();
+                },
+                confirmDeleteCategory(id) { this.openConfirm('Hapus Kategori', 'Yakin menghapus kategori ini?', () => { this.categories = this.categories.filter(c => c.id !== id); this.deleteFromGas('categories', id); this.saveLocalStorage(); this.showToast('Kategori dihapus.');}); },
+
+                // STOK 
+                openStockModal() { if (this.currentUser.role !== 'admin') return this.showToast('Hanya Admin yang dapat mengelola stok.'); this.stockForm = { productId: this.products[0]?.id || '', type: 'IN', qty: 1, note: '' }; this.isStockModalOpen = true; this.refreshIcons(); },
+                saveStockAdjustment() {
+                    const p = this.products.find(x => x.id === this.stockForm.productId);
+                    if(!p || this.stockForm.qty <= 0) return this.showToast('Pilih produk & jumlah valid!');
+                    if(this.stockForm.type === 'IN') p.stock += this.stockForm.qty;
+                    else { if(p.stock < this.stockForm.qty) return this.showToast('Stok tidak cukup!'); p.stock -= this.stockForm.qty; }
+                    this.syncToGas('products', p.id, p);
+                    const log = { id: Date.now(), date: new Date().getFullYear() + '-' + String(new Date().getMonth()+1).padStart(2,'0') + '-' + String(new Date().getDate()).padStart(2,'0') + ' ' + String(new Date().getHours()).padStart(2,'0') + ':' + String(new Date().getMinutes()).padStart(2,'0'), productName: p.name, type: this.stockForm.type, qty: this.stockForm.qty, note: this.stockForm.note || (this.stockForm.type==='IN'?'Barang Masuk':'Barang Keluar') };
+                    this.stockLogs.unshift(log); this.syncToGas('stockLogs', log.id, log);
+                    this.saveLocalStorage(); this.isStockModalOpen = false; this.showToast('Stok diperbarui.');
+                    this.refreshIcons();
+                },
+
+                // RIWAYAT & LAPORAN
+                get allTransactions() { 
+                    const m = new Map(); 
+                    [...this.permanentHistory, ...this.transactions].forEach(t => m.set(t.id, t)); 
+                    (this.dailyArchives || []).forEach(a => {
+                        (a.transactions || []).forEach(t => m.set(t.id, t));
+                    });
+                    return Array.from(m.values()).sort((a,b) => new Date(b.date) - new Date(a.date)); 
+                },
+                get filteredTransactions() { 
+                    const q = (this.historySearch || '').toLowerCase();
+                    return this.transactions.filter(t => t.id.toLowerCase().includes(q) || (t.customer && t.customer.toLowerCase().includes(q)) || (t.cashier && t.cashier.toLowerCase().includes(q))); 
+                },
+
+                // ARSIP HARIAN PER DATE & RESET OTOMATIS
+                formatDateIndo(dateStr) {
+                    if (!dateStr) return '';
+                    try {
+                        const parts = dateStr.split('-');
+                        if (parts.length === 3) {
+                            const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+                            return d.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                        }
+                    } catch (_) {}
+                    return dateStr;
+                },
+
+                get filteredDailyArchives() {
+                    const q = (this.archiveSearch || '').trim().toLowerCase();
+                    if (!q) return this.dailyArchives || [];
+                    return (this.dailyArchives || []).filter(a => 
+                        (a.date && a.date.toLowerCase().includes(q)) || 
+                        (a.dateFormatted && a.dateFormatted.toLowerCase().includes(q))
+                    );
+                },
+
+                checkAutoDailyReset() {
+                    if (!this.transactions || this.transactions.length === 0) return;
+                    const now = new Date();
+                    const todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+                    
+                    // Filter transaksi yang tanggalnya BUKAN hari ini
+                    const pastTransactions = this.transactions.filter(t => t.date && !t.date.startsWith(todayStr));
+                    if (pastTransactions.length > 0) {
+                        this.archiveTransactionsList(pastTransactions, false);
+                        this.transactions = this.transactions.filter(t => t.date && t.date.startsWith(todayStr));
+                        this.saveLocalStorage();
+                        this.showToast(`Reset otomatis: ${pastTransactions.length} transaksi sesi sebelumnya tersimpan ke Arsip Harian.`);
+                        this.refreshIcons();
+                    }
+                },
+
+                archiveTransactionsList(trxList, isManual = false) {
+                    if (!trxList || trxList.length === 0) return;
+                    if (!this.dailyArchives) this.dailyArchives = [];
+
+                    // Kelompokkan transaksi per tanggal YYYY-MM-DD
+                    const grouped = {};
+                    trxList.forEach(t => {
+                        const dateKey = (t.date || '').split(' ')[0] || new Date().toISOString().slice(0, 10);
+                        if (!grouped[dateKey]) grouped[dateKey] = [];
+                        grouped[dateKey].push(t);
+                    });
+
+                    Object.keys(grouped).forEach(dateKey => {
+                        const dayTrxs = grouped[dateKey];
+                        let existing = this.dailyArchives.find(a => a.date === dateKey);
+                        
+                        if (!existing) {
+                            existing = {
+                                date: dateKey,
+                                dateFormatted: this.formatDateIndo(dateKey),
+                                transactions: [],
+                                totalRevenue: 0,
+                                totalProfit: 0,
+                                totalTransactions: 0,
+                                totalItemsSold: 0,
+                                archivedAt: new Date().toISOString()
+                            };
+                            this.dailyArchives.push(existing);
+                        }
+
+                        // Gabungkan transaksi per hari dengan memastikan ID unik
+                        const map = new Map();
+                        (existing.transactions || []).forEach(t => map.set(t.id, t));
+                        dayTrxs.forEach(t => map.set(t.id, t));
+                        existing.transactions = Array.from(map.values()).sort((a,b) => new Date(b.date) - new Date(a.date));
+
+                        // Hitung akumulasi statistik arsip hari tersebut
+                        existing.totalTransactions = existing.transactions.length;
+                        existing.totalRevenue = existing.transactions.reduce((s, t) => s + (Number(t.total) || 0), 0);
+                        existing.totalProfit = existing.transactions.reduce((s, t) => {
+                            const cost = (t.items || []).reduce((c, i) => c + ((Number(i.buyPrice) || 0) * (Number(i.qty) || 1)), 0);
+                            return s + Math.max(0, (Number(t.total) || 0) - cost);
+                        }, 0);
+                        existing.totalItemsSold = existing.transactions.reduce((s, t) => {
+                            return s + (t.items || []).reduce((sum, i) => sum + (Number(i.qty) || 0), 0);
+                        }, 0);
+                        existing.dateFormatted = this.formatDateIndo(dateKey);
+                        existing.lastUpdated = new Date().toISOString();
+                    });
+
+                    // Urutkan arsip terbaru di posisi teratas
+                    this.dailyArchives.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    this.saveLocalStorage();
+                    this.refreshIcons();
+                },
+
+                manualArchiveCurrentDay() {
+                    if (this.transactions.length === 0) return this.showToast('Tidak ada transaksi aktif untuk diarsipkan.');
+                    this.openConfirm('Arsipkan Transaksi Sesi Ini', 'Pindahkan seluruh riwayat transaksi aktif saat ini ke Arsip Harian? Riwayat tidak dihapus, tersimpan aman per hari dan dapat di-download kapan saja.', () => {
+                        const count = this.transactions.length;
+                        this.archiveTransactionsList(this.transactions, true);
+                        this.transactions = [];
+                        this.saveLocalStorage();
+                        this.historySubTab = 'archives';
+                        this.showToast(`${count} transaksi aktif berhasil dipindahkan ke Arsip Rekap Harian.`);
+                        this.refreshIcons();
+                    });
+                },
+
+                viewArchiveDetail(archive) {
+                    if (!archive) return;
+                    this.selectedArchive = archive;
+                    this.isArchiveDetailModalOpen = true;
+                    this.refreshIcons();
+                },
+
+                downloadDailyArchiveCSV(archive) {
+                    if (!archive || !archive.transactions || archive.transactions.length === 0) {
+                        return this.showToast('Tidak ada data transaksi untuk didownload.');
+                    }
+                    const esc = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+                    let csv = "data:text/csv;charset=utf-8,\uFEFF";
+                    csv += esc("REKAP TRANSAKSI HARIAN - " + this.settings.storeName) + "\r\n";
+                    csv += esc("Tanggal: " + (archive.dateFormatted || archive.date)) + "\r\n";
+                    csv += esc("Total Transaksi: " + (archive.totalTransactions || archive.transactions.length)) + "\r\n";
+                    csv += esc("Total Omzet: " + this.formatIDR(archive.totalRevenue)) + "\r\n";
+                    csv += esc("Estimasi Laba: " + this.formatIDR(archive.totalProfit)) + "\r\n";
+                    csv += esc("Total Item Terjual: " + (archive.totalItemsSold || 0) + " pcs") + "\r\n";
+                    csv += "\r\n";
+
+                    csv += ['No. Transaksi','Tanggal & Waktu','Kasir','Pelanggan','Metode Bayar','Item Terjual','Rincian Barang','Subtotal','Diskon','Total (Rp)','Estimasi Laba (Rp)'].map(esc).join(',') + "\r\n";
+
+                    archive.transactions.forEach(t => {
+                        const itemDetails = (t.items || []).map(i => `${i.name} (${i.qty}x @${i.sellPrice})`).join('; ');
+                        const totalItems = (t.items || []).reduce((s, i) => s + (Number(i.qty) || 0), 0);
+                        const cost = (t.items || []).reduce((c, i) => c + ((Number(i.buyPrice) || 0) * (Number(i.qty) || 1)), 0);
+                        const profit = Math.max(0, (Number(t.total) || 0) - cost);
+
+                        csv += [
+                            esc(t.id),
+                            esc(t.date),
+                            esc(t.cashier || ''),
+                            esc(t.customer || 'Umum'),
+                            esc(t.method || 'Tunai'),
+                            totalItems,
+                            esc(itemDetails),
+                            t.subtotal || t.total,
+                            t.discount || 0,
+                            t.total,
+                            profit
+                        ].join(',') + "\r\n";
+                    });
+
+                    const link = document.createElement("a");
+                    link.setAttribute("href", encodeURI(csv));
+                    link.setAttribute("download", `rekap_transaksi_${archive.date}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    this.showToast(`Laporan CSV tanggal ${archive.date} berhasil didownload!`);
+                },
+
+                confirmDeleteDailyArchive(archive) {
+                    if (!archive) return;
+                    this.openConfirm(
+                        'Hapus Arsip Harian', 
+                        `Yakin ingin menghapus seluruh arsip tanggal ${archive.dateFormatted || archive.date} (${archive.totalTransactions || archive.transactions.length} transaksi)? Data ini akan dihapus secara permanen.`, 
+                        () => {
+                            this.dailyArchives = (this.dailyArchives || []).filter(a => a.date !== archive.date);
+                            this.saveLocalStorage();
+                            if (this.selectedArchive && this.selectedArchive.date === archive.date) {
+                                this.isArchiveDetailModalOpen = false;
+                            }
+                            this.showToast(`Arsip tanggal ${archive.date} berhasil dihapus.`);
+                            this.refreshIcons();
+                        }
+                    );
+                },
+
+                get filteredReportTransactions() {
+                    const list = this.allTransactions;
+                    if (this.reportFilter === 'all') return list;
+                    const now = new Date();
+                    const todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+                    if (this.reportFilter === 'today') {
+                        return list.filter(t => t.date.startsWith(todayStr));
+                    }
+                    if (this.reportFilter === 'week') {
+                        const d = new Date();
+                        d.setDate(d.getDate() - 7);
+                        return list.filter(t => new Date(t.date) >= d);
+                    }
+                    if (this.reportFilter === 'month') {
+                        const d = new Date();
+                        d.setDate(d.getDate() - 30);
+                        return list.filter(t => new Date(t.date) >= d);
+                    }
+                    return list;
+                },
+                get reportStats() {
+                    const list = this.filteredReportTransactions;
+                    const revenue = list.reduce((s,t) => s + t.total, 0);
+                    const profit = list.reduce((s, t) => {
+                        const cost = (t.items || []).reduce((c, i) => c + ((Number(i.buyPrice) || 0) * (Number(i.qty) || 1)), 0);
+                        return s + Math.max(0, t.total - cost);
+                    }, 0);
+                    const avgOrder = list.length > 0 ? Math.round(revenue / list.length) : 0;
+                    const margin = revenue > 0 ? Math.round((profit / revenue) * 100) : 0;
+                    return { revenue, profit, count: list.length, avgOrder, margin };
+                },
+                get totalRevenue() { return this.allTransactions.reduce((s,t) => s + t.total, 0); },
+                get topSellingProducts() { 
+                    const map = {}; 
+                    this.filteredReportTransactions.forEach(t => t.items.forEach(i => { 
+                        if(!map[i.name]) map[i.name]={name:i.name, category:i.category||'Umum', soldCount:0}; 
+                        map[i.name].soldCount += i.qty; 
+                    })); 
+                    return Object.values(map).sort((a,b)=>b.soldCount-a.soldCount); 
+                },
+
+                exportFullBackupJSON() {
+                    const backupData = {
+                        app: 'Kasir-KOPMA',
+                        timestamp: new Date().toISOString(),
+                        products: this.products,
+                        categories: this.categories,
+                        transactions: this.transactions,
+                        dailyArchives: this.dailyArchives,
+                        permanentHistory: this.permanentHistory,
+                        stockLogs: this.stockLogs,
+                        settings: this.settings,
+                        users: this.users
+                    };
+                    const blob = new Blob([JSON.stringify(backupData, null, 2)], {type: 'application/json'});
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `backup_kasir_${new Date().toISOString().slice(0,10)}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    this.showToast('Backup data JSON berhasil didownload!');
+                },
+
+                importFullBackupJSON(event) {
+                    const file = event.target.files && event.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            if (!data || !Array.isArray(data.products)) throw new Error('Format file backup tidak valid.');
+                            this.openConfirm('Pulihkan Data (Restore)', 'Data saat ini akan digantikan dengan data dari file backup. Lanjutkan?', async () => {
+                                if (Array.isArray(data.products)) this.products = data.products;
+                                if (Array.isArray(data.categories)) this.categories = data.categories;
+                                if (Array.isArray(data.transactions)) this.transactions = data.transactions;
+                                if (Array.isArray(data.dailyArchives)) this.dailyArchives = data.dailyArchives;
+                                if (Array.isArray(data.permanentHistory)) this.permanentHistory = data.permanentHistory;
+                                if (Array.isArray(data.stockLogs)) this.stockLogs = data.stockLogs;
+                                if (data.settings && typeof data.settings === 'object') this.settings = {...this.settings, ...data.settings};
+                                this.saveLocalStorage();
+                                this.showToast('Data berhasil dipulihkan dari file backup!');
+                                this.refreshIcons();
+                            });
+                        } catch (err) {
+                            this.showToast('Gagal memulihkan backup: ' + err.message);
+                        }
+                    };
+                    reader.readAsText(file);
+                    event.target.value = '';
+                },
+
+                exportCSVReport() {
+                    if (this.allTransactions.length === 0) return this.showToast('Tidak ada data untuk diekspor.');
+                    const esc = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+                    let csv = "data:text/csv;charset=utf-8,\uFEFF" + ['No. Transaksi','Tanggal & Waktu','Kasir','Total'].join(',') + "\r\n";
+                    this.allTransactions.forEach(t => {
+                        csv += [esc(t.id),esc(t.date),esc(t.cashier),t.total].join(',') + "\r\n";
+                    });
+                    const link = document.createElement("a"); link.setAttribute("href", encodeURI(csv));
+                    link.setAttribute("download", `rekap_laporan_penjualan_${new Date().toISOString().slice(0,10)}.csv`);
+                    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+                    this.showToast('Laporan CSV berhasil didownload!');
+                },
+
+                confirmResetTransactions() {
+                    this.openConfirm('Arsipkan & Reset Riwayat Aktif', 'Download laporan CSV terlebih dahulu? Riwayat aktif akan dipindahkan ke Arsip Harian (tidak dihapus) sehingga kasir kembali bersih.', () => {
+                        this.exportCSVReport();
+                        if (this.transactions.length > 0) {
+                            this.archiveTransactionsList(this.transactions, true);
+                            this.transactions.forEach(t => {
+                                if(!this.permanentHistory.some(p => p.id === t.id)) {
+                                    this.permanentHistory.push(t);
+                                    this.syncToGas('permanentHistory', t.id, t);
+                                }
+                                this.deleteFromGas('transactions', t.id);
+                            });
+                            this.transactions = [];
+                        }
+                        this.saveLocalStorage();
+                        this.showToast('Riwayat transaksi tersimpan ke Arsip Harian & kasir aktif siap digunakan.');
+                        this.historySubTab = 'archives';
+                        this.refreshIcons();
+                    });
+                },
+
+                confirmResetReports() {
+                    this.openConfirm('Reset Laporan', 'Download laporan CSV terlebih dahulu? Data laporan aktif akan dikosongkan.', () => {
+                        this.exportCSVReport();
+                        this.transactions.forEach(t => { if(!this.permanentHistory.some(p => p.id === t.id)) { this.permanentHistory.push(t); this.syncToGas('permanentHistory', t.id, t); } this.deleteFromGas('transactions', t.id); });
+                        this.transactions = [];
+                        this.stockLogs.forEach(l => this.deleteFromGas('stockLogs', l.id)); this.stockLogs = [];
+                        this.saveLocalStorage(); this.showToast('Laporan aktif direset.');
+                        this.refreshIcons();
+                    });
+                },
+
+                confirmDeleteProductByName(name) {
+                    this.openConfirm('Hapus Produk dari Laporan', `Hapus ${name} dari arsip dan laporan?`, () => {
+                        const filterTrx = (trxs, colName) => trxs.map(t => {
+                            const newItems = t.items.filter(i => i.name.toLowerCase() !== name.toLowerCase());
+                            if(newItems.length === 0) { this.deleteFromGas(colName, t.id); return null; }
+                            const newSubtotal = newItems.reduce((s, i) => s + (i.sellPrice * i.qty), 0);
+                            const newTotal = Math.max(0, newSubtotal - (t.discount || 0));
+                            const updated = {...t, items: newItems, subtotal: newSubtotal, total: newTotal, cash: Math.max(t.cash, newTotal), change: Math.max(0, Math.max(t.cash, newTotal) - newTotal)};
+                            this.syncToGas(colName, updated.id, updated); return updated;
+                        }).filter(Boolean);
+                        
+                        this.transactions = filterTrx(this.transactions, 'transactions');
+                        this.permanentHistory = filterTrx(this.permanentHistory, 'permanentHistory');
+                        if (Array.isArray(this.dailyArchives)) {
+                            this.dailyArchives.forEach(a => {
+                                if (Array.isArray(a.transactions)) {
+                                    a.transactions = a.transactions.map(t => {
+                                        const newItems = t.items.filter(i => i.name.toLowerCase() !== name.toLowerCase());
+                                        if (newItems.length === 0) return null;
+                                        const newSubtotal = newItems.reduce((s, i) => s + (i.sellPrice * i.qty), 0);
+                                        const newTotal = Math.max(0, newSubtotal - (t.discount || 0));
+                                        return {...t, items: newItems, subtotal: newSubtotal, total: newTotal, cash: Math.max(t.cash, newTotal), change: Math.max(0, Math.max(t.cash, newTotal) - newTotal)};
+                                    }).filter(Boolean);
+                                    a.totalTransactions = a.transactions.length;
+                                    a.totalRevenue = a.transactions.reduce((s, t) => s + (Number(t.total) || 0), 0);
+                                    a.totalProfit = a.transactions.reduce((s, t) => {
+                                        const cost = (t.items || []).reduce((c, i) => c + ((Number(i.buyPrice) || 0) * (Number(i.qty) || 1)), 0);
+                                        return s + Math.max(0, (Number(t.total) || 0) - cost);
+                                    }, 0);
+                                    a.totalItemsSold = a.transactions.reduce((s, t) => {
+                                        return s + (t.items || []).reduce((sum, i) => sum + (Number(i.qty) || 0), 0);
+                                    }, 0);
+                                }
+                            });
+                        }
+                        const prod = this.products.find(p => p.name.toLowerCase() === name.toLowerCase());
+                        if (prod) this.deleteFromGas('products', prod.id);
+                        this.products = this.products.filter(p => p.name.toLowerCase() !== name.toLowerCase());
+                        this.saveLocalStorage(); this.showToast(`Produk & data ${name} dihapus dari arsip.`);
+                        this.refreshIcons();
+                    });
+                },
+
+                // USER & SETTINGS
+                viewTransactionDetail(t) { this.selectedTrx = t; this.isDetailModalOpen = true; this.refreshIcons(); },
+                printReceipt(t) { this.receiptData = t; setTimeout(() => window.print(), 200); },
+                openUserModal() { this.userForm = {name:'', username:'', password:'', role:'kasir'}; this.isUserModalOpen = true; this.refreshIcons(); },
+                saveUser() { 
+                    if (!this.userForm.name || !this.userForm.username) return this.showToast('Data akun tidak lengkap!');
+                    if (this.users.some(u => u.username === this.userForm.username)) return this.showToast('Username sudah ada!');
+                    this.users.push({...this.userForm}); this.syncToGas('users', this.userForm.username, this.userForm); this.saveLocalStorage(); this.isUserModalOpen = false; this.showToast('Akun ditambah');
+                    this.refreshIcons();
+                },
+                confirmDeleteUser(u) { this.openConfirm('Hapus Akun', 'Hapus akun ini?', () => { this.users = this.users.filter(x => x.username !== u); this.deleteFromGas('users', u); this.saveLocalStorage(); this.showToast('Akun dihapus.');}); },
+                async handleProductImage(event) {
+                    const file = event.target.files && event.target.files[0];
+                    if (!file) return;
+                    if (!file.type.startsWith('image/')) return this.showToast('File harus berupa gambar.');
+                    if (file.size > 8 * 1024 * 1024) return this.showToast('Ukuran file maksimal 8 MB.');
+                    try {
+                        const dataUrl = await new Promise((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onload = () => resolve(reader.result);
+                            reader.onerror = reject;
+                            reader.readAsDataURL(file);
+                        });
+                        const img = await new Promise((resolve, reject) => {
+                            const el = new Image();
+                            el.onload = () => resolve(el);
+                            el.onerror = reject;
+                            el.src = dataUrl;
+                        });
+                        const maxSize = 900;
+                        const scale = Math.min(1, maxSize / Math.max(img.naturalWidth || img.width, img.naturalHeight || img.height));
+                        const canvas = document.createElement('canvas');
+                        canvas.width = Math.max(1, Math.round((img.naturalWidth || img.width) * scale));
+                        canvas.height = Math.max(1, Math.round((img.naturalHeight || img.height) * scale));
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        let compressed = canvas.toDataURL('image/jpeg', 0.78);
+                        if (compressed.length > 45000) compressed = canvas.toDataURL('image/jpeg', 0.58);
+                        this.productForm.image = compressed;
+                        this.productImageRefresh = Date.now();
+                        this.showToast('Foto berhasil dimuat. Klik Simpan untuk menerapkannya.');
+                    } catch (_) {
+                        this.showToast('Gagal membaca atau memproses gambar.');
+                    }
+                },
+                setTheme(key) {
+                    const t = this.themeOptions.find(x => x.key === key) || this.themeOptions[0];
+                    this.settings.theme = t.key;
+                    document.documentElement.style.setProperty('--app-primary', t.color);
+                    document.documentElement.style.setProperty('--app-primary-dark', t.dark);
+                    document.documentElement.style.setProperty('--app-soft', t.soft);
+                    this.saveLocalStorage();
+                    this.syncToGas('settings', 'store', this.settings);
+                    this.showToast('Warna tampilan diubah ke ' + t.name + '.');
+                },
+                applyTheme() {
+                    const t = this.themeOptions.find(x => x.key === this.settings.theme) || this.themeOptions[0];
+                    document.documentElement.style.setProperty('--app-primary', t.color);
+                    document.documentElement.style.setProperty('--app-primary-dark', t.dark);
+                    document.documentElement.style.setProperty('--app-soft', t.soft);
+                },
+                saveSettings() {
+                    this.saveLocalStorage();
+                    this.syncToGas('settings', 'store', this.settings);
+                    this.showToast('Pengaturan disimpan.');
+                }
+            }
+        }
+    </script>
+</body>
+</html>

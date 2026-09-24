@@ -1,0 +1,6 @@
+{
+  "name": "Aplikasi Kasir Online & Manajemen Toko",
+  "description": "Aplikasi Kasir Online & Manajemen Toko dengan sinkronisasi Google Sheets, manajemen stok, laporan penjualan, dan cetak struk.",
+  "permissions": [],
+  "capabilities": []
+}
