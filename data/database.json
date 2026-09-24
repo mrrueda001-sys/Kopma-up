@@ -1,0 +1,121 @@
+{
+  "products": [
+    {
+      "id": "P999",
+      "name": "Chiki Balls Keju",
+      "barcode": "8992775999999",
+      "category": "Makanan & Snack",
+      "buyPrice": 4000,
+      "sellPrice": 5500,
+      "stock": 30,
+      "unit": "Bungkus",
+      "image": "/uploads/P999_1790214940354_15ad8d9a.png"
+    },
+    {
+      "id": "P001",
+      "name": "Air Mineral Kopma 600ml",
+      "barcode": "8992775211112",
+      "category": "Minuman",
+      "buyPrice": 2200,
+      "sellPrice": 3500,
+      "stock": 75,
+      "unit": "Botol",
+      "image": "https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=400&auto=format&fit=crop&q=80"
+    },
+    {
+      "id": "P002",
+      "name": "Teh Botol Sosro Kotak 250ml",
+      "barcode": "8999999001234",
+      "category": "Minuman",
+      "buyPrice": 3000,
+      "sellPrice": 4500,
+      "stock": 40,
+      "unit": "Kotak",
+      "image": "https://images.unsplash.com/photo-1556881286-fc6915169721?w=400&auto=format&fit=crop&q=80"
+    },
+    {
+      "id": "P003",
+      "name": "Indomie Goreng Spesial",
+      "barcode": "089686010924",
+      "category": "Makanan & Snack",
+      "buyPrice": 2800,
+      "sellPrice": 3500,
+      "stock": 50,
+      "unit": "Bungkus",
+      "image": "https://images.unsplash.com/photo-1612927601601-6638404737ce?w=400&auto=format&fit=crop&q=80"
+    },
+    {
+      "id": "P004",
+      "name": "Ultra Milk Cokelat 250ml",
+      "barcode": "8992753112001",
+      "category": "Minuman",
+      "buyPrice": 5200,
+      "sellPrice": 7000,
+      "stock": 30,
+      "unit": "Kotak",
+      "image": "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400&auto=format&fit=crop&q=80"
+    },
+    {
+      "id": "P005",
+      "name": "Buku Tulis KIKY Spiral B5",
+      "barcode": "8992775310022",
+      "category": "Alat Tulis & Kampus",
+      "buyPrice": 12000,
+      "sellPrice": 16500,
+      "stock": 25,
+      "unit": "Buku",
+      "image": "https://images.unsplash.com/photo-1531346878377-a5be20888e57?w=400&auto=format&fit=crop&q=80"
+    }
+  ],
+  "categories": [
+    {
+      "id": 1,
+      "name": "Minuman"
+    },
+    {
+      "id": 2,
+      "name": "Makanan & Snack"
+    },
+    {
+      "id": 3,
+      "name": "Alat Tulis & Kampus"
+    },
+    {
+      "id": 4,
+      "name": "Sembako & Kebutuhan"
+    }
+  ],
+  "transactions": [],
+  "dailyArchives": [],
+  "permanentHistory": [],
+  "stockLogs": [],
+  "deletedStockLogIds": [],
+  "settings": {
+    "storeName": "KOPMA Store",
+    "address": "Gedung Koperasi Mahasiswa",
+    "phone": "081234567890",
+    "receiptNote": "Terima kasih telah berbelanja di KOPMA.",
+    "theme": "blue",
+    "soundEnabled": true,
+    "bankAccount": "BCA 1234567890 a/n KOPMA",
+    "lowStockThreshold": 5,
+    "autoPrintReceipt": true
+  },
+  "users": [
+    {
+      "username": "admin",
+      "password": "admin",
+      "name": "Administrator",
+      "role": "admin",
+      "profileImage": ""
+    },
+    {
+      "username": "kasir",
+      "password": "kasir",
+      "name": "Kasir Utama",
+      "role": "kasir",
+      "profileImage": ""
+    }
+  ],
+  "updatedAt": 1790215147765
+}

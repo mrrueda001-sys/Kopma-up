@@ -3,8 +3,8 @@
 Sistem Kasir Online dan Manajemen Toko terintegrasi dengan Google Sheets (Google Apps Script Web App), manajemen stok, riwayat transaksi, dan cetak struk nota.
 
 ## Akun Login Bawaan:
-- **Admin**: `admin` / `admin123`
-- **Kasir**: `kasir` / `kasir123`
+- **Admin**: `admin` / `admin`
+- **Kasir**: `kasir` / `kasir`
 
 ## Fitur Aplikasi yang Dikembangkan:
 1. **Login & Manajemen Pengguna**:
