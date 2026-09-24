@@ -11,6 +11,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script type="module" src="/src/google-drive.ts"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -27,40 +28,28 @@
         /* Hide scrollbar for IE, Edge and Firefox */
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* Mobile-grade ultra-smooth tab transitions & animations */
+        /* Ultra-lightweight, high-performance transitions (Crash-proof & battery friendly) */
         .tab-fade-slide-enter {
-            transition: opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1),
-                        transform 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
-            will-change: opacity, transform;
-            backface-visibility: hidden;
-            -webkit-backface-visibility: hidden;
-            transform: translate3d(0, 0, 0);
+            transition: opacity 0.16s ease-out !important;
         }
         .tab-fade-slide-start {
             opacity: 0 !important;
-            transform: translate3d(0, 10px, 0) !important;
         }
         .tab-fade-slide-end {
             opacity: 1 !important;
-            transform: translate3d(0, 0, 0) !important;
         }
 
-        @keyframes dockSpring {
-            0% { transform: scale(0.92); }
-            50% { transform: scale(1.05); }
-            75% { transform: scale(0.98); }
-            100% { transform: scale(1); }
-        }
         .active-dock-item {
-            animation: dockSpring 0.32s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            transform: scale(1);
+            transition: transform 0.12s ease-out;
         }
 
         @keyframes gentleFadeIn {
-            from { opacity: 0; transform: translate3d(0, 8px, 0); }
-            to { opacity: 1; transform: translate3d(0, 0, 0); }
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
         .animate-gentle-fade {
-            animation: gentleFadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            animation: gentleFadeIn 0.15s ease-out forwards;
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -116,16 +105,11 @@
                     </div>
                 </div>
                 <div>
-                    <div class="flex items-center justify-between mb-1">
-                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider">Password</label>
-                        <button type="button" @click="showLoginPassword = !showLoginPassword" class="text-[11px] text-emerald-600 hover:text-emerald-700 font-semibold focus:outline-none">
-                            <span x-text="showLoginPassword ? 'Sembunyikan' : 'Tampilkan'"></span>
-                        </button>
-                    </div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Password</label>
                     <div class="relative">
                         <i data-lucide="lock" class="w-5 h-5 absolute left-3.5 top-3 text-slate-400"></i>
                         <input :type="showLoginPassword ? 'text' : 'password'" x-model="loginForm.password" required autocapitalize="none" autocomplete="current-password" placeholder="Masukkan password" class="w-full pl-11 pr-11 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-medium">
-                        <button type="button" @click="showLoginPassword = !showLoginPassword" class="absolute right-3.5 top-3 text-slate-400 hover:text-slate-600 focus:outline-none">
+                        <button type="button" @click="showLoginPassword = !showLoginPassword; $nextTick(() => refreshIcons())" class="absolute right-3.5 top-3 text-slate-400 hover:text-slate-600 focus:outline-none" title="Tampilkan / Sembunyikan Password">
                             <i :data-lucide="showLoginPassword ? 'eye-off' : 'eye'" class="w-4 h-4"></i>
                         </button>
                     </div>
@@ -134,10 +118,6 @@
                     <span>Masuk ke Sistem</span><i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </button>
             </form>
-
-            <div class="text-center pt-1 border-t border-slate-100">
-                <p class="text-xs text-slate-400">Akun bawaan: <span class="font-mono font-medium text-slate-600">admin / admin</span> atau <span class="font-mono font-medium text-slate-600">kasir / kasir</span></p>
-            </div>
         </div>
     </div>
 
@@ -165,7 +145,7 @@
                     <!-- Cloud Real-Time Indicator (Langsung Aktif & Otomatis) -->
                     <div class="flex items-center space-x-1.5 ml-1 sm:ml-2">
                         <span class="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold px-2.5 py-1 rounded-full flex items-center space-x-1.5 shadow-2xs" title="Cloud Otomatis Aktif: Semua transaksi & stok tersinkron real-time antar perangkat">
-                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
                             <span class="hidden sm:inline">Cloud Terhubung</span>
                             <span class="sm:hidden">Cloud</span>
                         </span>
@@ -291,129 +271,373 @@
                  x-transition:enter="tab-fade-slide-enter" 
                  x-transition:enter-start="tab-fade-slide-start" 
                  x-transition:enter-end="tab-fade-slide-end" 
-                 class="p-4 sm:p-6 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 h-full pb-28 md:pb-32" x-cloak>
-                <div class="lg:col-span-7 flex flex-col space-y-4">
-                    <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-                        <div class="relative flex-1">
-                            <i data-lucide="scan-barcode" class="w-5 h-5 absolute left-3.5 top-3 text-slate-400"></i>
-                            <input id="pos-search-input" type="text" x-model="posSearch" @keydown.enter.prevent="scanBarcodeOrAdd()" placeholder="Cari nama / scan barcode... (Tekan Enter)" class="w-full pl-11 pr-24 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
-                            <button type="button" @click="scanBarcodeOrAdd()" class="absolute right-2 top-2 px-2.5 py-1 app-soft app-text font-semibold rounded-lg text-xs hover:app-primary hover:text-white transition">Enter</button>
-                        </div>
-                        <select x-model="posCategoryFilter" class="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                            <option value="">Semua Kategori</option>
-                            <template x-for="cat in categories" :key="cat.id"><option :value="cat.name" x-text="cat.name"></option></template>
-                        </select>
-                    </div>
-
-                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 overflow-y-auto max-h-[calc(100vh-250px)] pr-2">
-                        <template x-for="prod in filteredPosProducts" :key="prod.id">
-                            <div @click="addToCart(prod)" class="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-emerald-200 cursor-pointer transition flex flex-col justify-between group">
-                                <div>
-                                    <div class="w-full h-28 mb-3 rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center">
-                                        <template x-if="prod.image">
-                                            <img :src="prod.image" :alt="prod.name" class="w-full h-full object-cover">
-                                        </template>
-                                        <template x-if="!prod.image">
-                                            <i data-lucide="image" class="w-8 h-8 text-slate-300"></i>
-                                        </template>
-                                    </div>
-                                    <h4 class="font-semibold text-slate-800 text-sm line-clamp-2" x-text="prod.name"></h4>
-                                    <p class="text-xs text-slate-400 mt-1" x-text="prod.category"></p>
-                                    <span class="inline-block mt-2 bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded-full" x-text="'Stok: ' + prod.stock + ' ' + prod.unit"></span>
-                                </div>
-                                <div class="mt-4 flex items-center justify-between">
-                                    <span class="font-bold app-text text-sm" x-text="formatIDR(prod.sellPrice)"></span>
-                                    <button class="w-8 h-8 rounded-lg app-soft app-text flex items-center justify-center group-hover:app-primary group-hover:text-white transition"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                 class="p-3 sm:p-5 md:p-6 grid grid-cols-1 gap-4 lg:gap-6 h-full pb-24 md:pb-28 transition-all duration-300" 
+                 :class="(showPosCart && cart.length > 0) ? 'lg:grid-cols-12' : 'lg:grid-cols-1'" x-cloak>
+                
+                <!-- Sisi Kiri: Katalog & Pencarian Produk -->
+                <div :class="(showPosCart && cart.length > 0) ? 'lg:col-span-7' : 'lg:col-span-12'" class="flex flex-col space-y-3.5 transition-all duration-300">
+                    
+                    <!-- Toolbar Atas Kasir: Pencarian, Mode Tampilan, Kategori Chips -->
+                    <div class="bg-white border border-slate-200/80 rounded-2xl p-3 shadow-xs space-y-2.5">
+                        <!-- Baris 1: Pencarian Cepat Barcode & Nama + Switch View + Keranjang Status -->
+                        <div class="flex items-center gap-2">
+                            <div class="relative flex-1">
+                                <i data-lucide="scan-barcode" class="w-4 h-4 absolute left-3.5 top-3 text-slate-400"></i>
+                                <input id="pos-search-input" 
+                                       type="text" 
+                                       x-model="posSearch" 
+                                       @keydown.enter.prevent="scanBarcodeOrAdd()" 
+                                       placeholder="Scan barcode / ketik nama produk... [F2]" 
+                                       class="w-full pl-10 pr-20 py-2.5 bg-slate-50 border border-slate-200/90 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-medium transition">
+                                <div class="absolute right-1.5 top-1.5 flex items-center space-x-1">
+                                    <button type="button" x-show="posSearch" @click="posSearch = ''; $nextTick(() => document.getElementById('pos-search-input')?.focus())" class="p-1 text-slate-400 hover:text-slate-600 rounded-md">
+                                        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                    <button type="button" @click="scanBarcodeOrAdd()" class="px-2.5 py-1 app-primary text-white font-semibold rounded-lg text-xs shadow-2xs hover:opacity-90 transition">
+                                        Cari
+                                    </button>
                                 </div>
                             </div>
+
+                            <!-- Mode Tampilan: Grid Foto vs List Baris Ringkas -->
+                            <div class="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200/70 shrink-0">
+                                <button type="button" 
+                                        @click="posViewMode = 'grid'; $nextTick(() => refreshIcons())" 
+                                        :class="posViewMode === 'grid' ? 'bg-white text-slate-900 shadow-2xs font-semibold' : 'text-slate-500 hover:text-slate-800'" 
+                                        class="p-2 rounded-lg text-xs flex items-center space-x-1 transition"
+                                        title="Tampilan Grid Foto">
+                                    <i data-lucide="layout-grid" class="w-4 h-4"></i>
+                                </button>
+                                <button type="button" 
+                                        @click="posViewMode = 'list'; $nextTick(() => refreshIcons())" 
+                                        :class="posViewMode === 'list' ? 'bg-white text-slate-900 shadow-2xs font-semibold' : 'text-slate-500 hover:text-slate-800'" 
+                                        class="p-2 rounded-lg text-xs flex items-center space-x-1 transition"
+                                        title="Tampilan List / Baris Cepat">
+                                    <i data-lucide="list" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+
+                            <!-- Tombol Keranjang -->
+                            <button type="button" 
+                                    @click="showPosCart = !showPosCart; $nextTick(() => refreshIcons())" 
+                                    :class="(showPosCart && cart.length > 0) ? 'app-primary text-white shadow-sm' : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100'" 
+                                    class="px-3 py-2 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition shrink-0">
+                                <i data-lucide="shopping-cart" class="w-4 h-4"></i>
+                                <span class="hidden sm:inline">Keranjang</span>
+                                <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold" :class="(showPosCart && cart.length > 0) ? 'bg-white text-emerald-700' : 'bg-slate-200 text-slate-700'" x-text="cart.reduce((s,i) => s + i.qty, 0)"></span>
+                            </button>
+                        </div>
+
+                        <!-- Baris 2: Chips Kategori Horizontal Interaktif (1 Klik Filter) -->
+                        <div class="flex items-center space-x-1.5 overflow-x-auto no-scrollbar pt-0.5 pb-0.5">
+                            <button type="button" 
+                                    @click="posCategoryFilter = ''" 
+                                    :class="posCategoryFilter === '' ? 'app-primary text-white shadow-xs font-semibold' : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80'" 
+                                    class="px-3 py-1.5 rounded-xl text-xs whitespace-nowrap transition flex items-center space-x-1 shrink-0">
+                                <span>Semua</span>
+                                <span class="text-[10px] opacity-80" x-text="'(' + products.length + ')'"></span>
+                            </button>
+                            <template x-for="cat in categories" :key="cat.id">
+                                <button type="button" 
+                                        @click="posCategoryFilter = cat.name" 
+                                        :class="posCategoryFilter === cat.name ? 'app-primary text-white shadow-xs font-semibold' : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80'" 
+                                        class="px-3 py-1.5 rounded-xl text-xs whitespace-nowrap transition flex items-center space-x-1 shrink-0">
+                                    <span x-text="cat.name"></span>
+                                    <span class="text-[10px] opacity-80" x-text="'(' + products.filter(p => p.category === cat.name).length + ')'"></span>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Area Katalog Produk Scrollable -->
+                    <div class="overflow-y-auto max-h-[calc(100vh-210px)] pr-1">
+                        <!-- Tampilan Kosong -->
+                        <template x-if="filteredPosProducts.length === 0">
+                            <div class="bg-white border border-slate-200/70 rounded-2xl p-12 text-center space-y-3">
+                                <div class="w-12 h-12 mx-auto rounded-full bg-slate-100 text-slate-400 flex items-center justify-center">
+                                    <i data-lucide="package-search" class="w-6 h-6"></i>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-slate-700 text-sm">Tidak ada produk ditemukan</p>
+                                    <p class="text-xs text-slate-400 mt-1">Coba kata kunci lain atau pilih kategori Semua</p>
+                                </div>
+                                <button type="button" @click="posSearch = ''; posCategoryFilter = ''" class="px-4 py-2 app-soft app-text font-semibold rounded-xl text-xs hover:app-primary hover:text-white transition">
+                                    Reset Filter
+                                </button>
+                            </div>
                         </template>
+
+                        <!-- 1. Tampilan GRID Foto Proporsional -->
+                        <div x-show="posViewMode === 'grid'" 
+                             :class="(showPosCart && cart.length > 0) ? 'grid-cols-2 sm:grid-cols-3 xl:grid-cols-4' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'" 
+                             class="grid gap-3 transition-all duration-300">
+                            <template x-for="prod in filteredPosProducts" :key="prod.id">
+                                <div @click="addToCart(prod)" 
+                                     :class="prod.stock <= 0 ? 'opacity-60 bg-slate-50 cursor-not-allowed border-slate-200' : 'bg-white border-slate-200/80 hover:border-emerald-400 hover:shadow-md cursor-pointer active:scale-[0.98]'" 
+                                     class="border rounded-2xl p-3 shadow-2xs transition flex flex-col justify-between group relative overflow-hidden">
+                                    
+                                    <!-- Badge Kuantitas di Keranjang -->
+                                    <template x-if="cart.find(i => i.id === prod.id)">
+                                        <span class="absolute top-2.5 right-2.5 z-10 app-primary text-white text-[11px] font-extrabold px-2 py-0.5 rounded-lg shadow-sm flex items-center space-x-1" 
+                                              x-text="cart.find(i => i.id === prod.id).qty + 'x'">
+                                        </span>
+                                    </template>
+
+                                    <div>
+                                        <!-- Foto Produk Ringkas -->
+                                        <div class="w-full h-24 mb-2.5 rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center relative">
+                                            <template x-if="prod.image">
+                                                <img :src="prod.image" :alt="prod.name" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" loading="lazy" decoding="async">
+                                            </template>
+                                            <template x-if="!prod.image">
+                                                <div class="w-full h-full flex flex-col items-center justify-center text-slate-300 bg-slate-50">
+                                                    <i data-lucide="package" class="w-7 h-7"></i>
+                                                </div>
+                                            </template>
+                                            
+                                            <!-- Badge Stok Kecil di Kiri Bawah Foto -->
+                                            <span class="absolute bottom-1.5 left-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-md backdrop-blur-md" 
+                                                  :class="prod.stock <= 0 ? 'bg-rose-500 text-white' : (prod.stock <= 5 ? 'bg-amber-500 text-white' : 'bg-slate-900/60 text-white')" 
+                                                  x-text="prod.stock <= 0 ? 'Habis' : 'Stok ' + prod.stock">
+                                            </span>
+                                        </div>
+
+                                        <!-- Info Produk -->
+                                        <h4 class="font-semibold text-slate-800 text-xs sm:text-sm line-clamp-2 leading-tight" x-text="prod.name"></h4>
+                                        <p class="text-[11px] text-slate-400 mt-0.5 truncate" x-text="prod.category"></p>
+                                    </div>
+
+                                    <!-- Baris Harga & Tombol Tambah -->
+                                    <div class="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
+                                        <div>
+                                            <span class="font-extrabold app-text text-sm block" x-text="formatIDR(prod.sellPrice)"></span>
+                                        </div>
+                                        <button type="button" 
+                                                :disabled="prod.stock <= 0" 
+                                                class="w-7 h-7 rounded-lg app-soft app-text flex items-center justify-center group-hover:app-primary group-hover:text-white transition shadow-2xs shrink-0">
+                                            <i data-lucide="plus" class="w-4 h-4"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- 2. Tampilan LIST / BARIS CEPAT (High-Speed Checkout Tanpa Foto) -->
+                        <div x-show="posViewMode === 'list'" class="bg-white border border-slate-200/80 rounded-2xl divide-y divide-slate-100 overflow-hidden shadow-xs">
+                            <template x-for="prod in filteredPosProducts" :key="prod.id">
+                                <div @click="addToCart(prod)" 
+                                     :class="prod.stock <= 0 ? 'opacity-60 bg-slate-50 cursor-not-allowed' : 'hover:bg-emerald-50/40 cursor-pointer active:bg-emerald-50'" 
+                                     class="p-2.5 sm:p-3 flex items-center justify-between gap-3 transition">
+                                    <div class="flex items-center space-x-3 min-w-0 flex-1">
+                                        <div class="w-9 h-9 rounded-xl bg-slate-100 overflow-hidden shrink-0 flex items-center justify-center">
+                                            <template x-if="prod.image">
+                                                <img :src="prod.image" :alt="prod.name" class="w-full h-full object-cover" loading="lazy">
+                                            </template>
+                                            <template x-if="!prod.image">
+                                                <i data-lucide="package" class="w-4 h-4 text-slate-400"></i>
+                                            </template>
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                            <div class="flex items-center gap-1.5">
+                                                <h4 class="font-semibold text-slate-800 text-sm truncate" x-text="prod.name"></h4>
+                                                <template x-if="cart.find(i => i.id === prod.id)">
+                                                    <span class="app-primary text-white text-[10px] font-bold px-1.5 py-0.2 rounded-md" x-text="cart.find(i => i.id === prod.id).qty + 'x'"></span>
+                                                </template>
+                                            </div>
+                                            <div class="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                                                <span x-text="prod.category"></span>
+                                                <span x-show="prod.barcode" class="font-mono text-[10px] text-slate-400" x-text="'• ' + prod.barcode"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center space-x-3 shrink-0">
+                                        <span class="text-xs px-2 py-0.5 rounded-full font-medium" 
+                                              :class="prod.stock <= 0 ? 'bg-rose-100 text-rose-700' : (prod.stock <= 5 ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600')" 
+                                              x-text="'Stok: ' + prod.stock + ' ' + (prod.unit || '')">
+                                        </span>
+                                        <span class="font-extrabold app-text text-sm sm:text-base min-w-20 text-right" x-text="formatIDR(prod.sellPrice)"></span>
+                                        <button type="button" 
+                                                :disabled="prod.stock <= 0" 
+                                                class="px-2.5 py-1.5 rounded-xl app-primary app-primary-hover text-white text-xs font-semibold flex items-center space-x-1 shadow-2xs transition">
+                                            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                                            <span class="hidden sm:inline">Pilih</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
                     </div>
                 </div>
 
-                <div class="lg:col-span-5 bg-white border border-slate-200 rounded-2xl flex flex-col shadow-sm h-fit lg:h-[calc(100vh-120px)]">
-                    <div class="p-4 border-b border-slate-100 flex items-center justify-between">
-                        <h3 class="font-bold text-slate-800 text-base flex items-center space-x-2"><i data-lucide="shopping-cart" class="w-5 h-5 app-text"></i><span>Keranjang Belanja</span></h3>
-                        <button @click="clearCart()" class="text-xs font-medium text-rose-600 hover:underline">Kosongkan</button>
+                <!-- Sisi Kanan: Panel Keranjang & Pembayaran Kasir -->
+                <div x-show="showPosCart && cart.length > 0" 
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 translate-y-4 lg:translate-y-0 lg:translate-x-4"
+                     x-transition:enter-end="opacity-100 translate-y-0 lg:translate-x-0"
+                     x-transition:leave="transition ease-in duration-150"
+                     x-transition:leave-start="opacity-100 translate-y-0 lg:translate-x-0"
+                     x-transition:leave-end="opacity-0 translate-y-4 lg:translate-y-0 lg:translate-x-4"
+                     class="lg:col-span-5 bg-white border border-slate-200/90 rounded-2xl flex flex-col shadow-lg h-fit lg:h-[calc(100vh-120px)] sticky top-20 overflow-hidden" x-cloak>
+                    
+                    <!-- Header Keranjang -->
+                    <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-7 h-7 rounded-lg app-primary text-white flex items-center justify-center">
+                                <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-slate-800 text-sm">Pesanan Kasir</h3>
+                                <p class="text-[11px] text-slate-400" x-text="cart.reduce((s,i) => s + i.qty, 0) + ' produk dipilih'"></p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-1.5">
+                            <button type="button" @click="clearCart()" class="px-2.5 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Kosongkan keranjang (F8)">
+                                Kosongkan
+                            </button>
+                            <button type="button" @click="showPosCart = false; $nextTick(() => refreshIcons())" class="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-lg transition" title="Tutup keranjang">
+                                <i data-lucide="x" class="w-4 h-4"></i>
+                            </button>
+                        </div>
                     </div>
 
-                    <div class="flex-1 overflow-y-auto p-4 space-y-3 divide-y divide-slate-50">
+                    <!-- Daftar Item Keranjang (Scrollable) -->
+                    <div class="flex-1 overflow-y-auto px-4 py-2 space-y-2.5 divide-y divide-slate-100 max-h-[280px] lg:max-h-none">
                         <template x-for="(item, index) in cart" :key="item.id">
-                            <div class="pt-3 first:pt-0 flex items-center justify-between">
-                                <div class="flex-1 pr-3">
-                                    <h4 class="font-semibold text-slate-800 text-sm" x-text="item.name"></h4>
-                                    <p class="text-xs app-text font-medium" x-text="formatIDR(item.sellPrice) + ' / ' + item.unit"></p>
+                            <div class="pt-2.5 first:pt-0 flex items-center justify-between gap-2">
+                                <div class="min-w-0 flex-1">
+                                    <h4 class="font-semibold text-slate-800 text-xs sm:text-sm truncate" x-text="item.name"></h4>
+                                    <p class="text-[11px] text-slate-400" x-text="'@ ' + formatIDR(item.sellPrice) + (item.unit ? ' / ' + item.unit : '')"></p>
                                 </div>
-                                <div class="flex items-center space-x-2">
-                                    <div class="flex items-center border border-slate-200 rounded-lg">
-                                        <button @click="updateCartQty(index, -1)" class="px-2 py-1 text-slate-600 hover:bg-slate-100 rounded-l-lg">-</button>
-                                        <span class="px-3 text-sm font-semibold" x-text="item.qty"></span>
-                                        <button @click="updateCartQty(index, 1)" class="px-2 py-1 text-slate-600 hover:bg-slate-100 rounded-r-lg">+</button>
+                                
+                                <!-- Stepper Kuantitas dengan Input Angka Langsung -->
+                                <div class="flex items-center space-x-1.5 shrink-0">
+                                    <div class="flex items-center border border-slate-200 rounded-lg bg-slate-50 overflow-hidden">
+                                        <button type="button" @click="updateCartQty(index, -1)" class="px-2 py-1 text-slate-600 hover:bg-slate-200 text-xs font-bold transition">-</button>
+                                        <input type="number" 
+                                               min="1" 
+                                               :max="products.find(p => p.id === item.id)?.stock || 999" 
+                                               x-model.number="item.qty" 
+                                               @change="onCartQtyInput(index)" 
+                                               class="w-10 text-center text-xs font-bold bg-white border-x border-slate-200 py-1 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                        <button type="button" @click="updateCartQty(index, 1)" class="px-2 py-1 text-slate-600 hover:bg-slate-200 text-xs font-bold transition">+</button>
                                     </div>
-                                    <button @click="removeFromCart(index)" class="text-slate-400 hover:text-rose-600 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+
+                                    <div class="text-right min-w-16">
+                                        <span class="font-bold text-slate-800 text-xs sm:text-sm block" x-text="formatIDR(item.sellPrice * item.qty)"></span>
+                                    </div>
+
+                                    <button type="button" @click="removeFromCart(index)" class="p-1 text-slate-300 hover:text-rose-600 transition" title="Hapus item">
+                                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                    </button>
                                 </div>
                             </div>
                         </template>
                     </div>
 
-                    <div class="p-4 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl space-y-3">
-                        <div class="flex items-center space-x-2">
-                            <i data-lucide="user" class="w-4 h-4 text-slate-400"></i>
-                            <input type="text" x-model="posCustomerName" placeholder="Nama Pelanggan / Meja (Opsional)" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-emerald-500">
-                        </div>
-
-                        <!-- Metode Pembayaran -->
-                        <div>
-                            <label class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Metode Pembayaran</label>
-                            <div class="grid grid-cols-3 gap-1.5 bg-slate-200/70 p-1 rounded-xl text-xs font-semibold text-center">
-                                <button type="button" @click="posPaymentMethod = 'Tunai'; posCash = cartTotal" :class="posPaymentMethod === 'Tunai' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'" class="py-1.5 rounded-lg transition">Tunai</button>
-                                <button type="button" @click="posPaymentMethod = 'QRIS'; isQrisModalOpen = true" :class="posPaymentMethod === 'QRIS' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'" class="py-1.5 rounded-lg transition">QRIS</button>
-                                <button type="button" @click="posPaymentMethod = 'Transfer'" :class="posPaymentMethod === 'Transfer' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'" class="py-1.5 rounded-lg transition">Transfer</button>
+                    <!-- Bagian Pembayaran Sticky di Bawah -->
+                    <div class="p-3.5 border-t border-slate-200 bg-slate-50/70 space-y-2.5">
+                        <!-- Input Pelanggan & Diskon Rapi Sebaris -->
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="relative">
+                                <i data-lucide="user" class="w-3.5 h-3.5 absolute left-2.5 top-2 text-slate-400"></i>
+                                <input type="text" x-model="posCustomerName" placeholder="Pelanggan / Meja" class="w-full bg-white border border-slate-200 rounded-lg pl-8 pr-2 py-1.5 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            </div>
+                            <div class="relative">
+                                <span class="absolute left-2.5 top-1.5 text-[10px] font-bold text-slate-400">Disc</span>
+                                <input type="number" x-model.number="posDiscount" placeholder="Diskon (Rp)" class="w-full bg-white border border-slate-200 rounded-lg pl-10 pr-2 py-1.5 text-right text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
                             </div>
                         </div>
 
-                        <div class="flex justify-between text-sm"><span class="text-slate-500">Subtotal</span><span class="font-semibold text-slate-800" x-text="formatIDR(cartSubtotal)"></span></div>
-                        <div class="flex justify-between text-sm items-center"><span class="text-slate-500">Diskon (Rp)</span><input type="number" x-model.number="posDiscount" class="w-32 bg-white border border-slate-200 rounded-lg px-2 py-1 text-right text-sm focus:ring-2 focus:ring-emerald-500"></div>
-                        <div class="flex justify-between text-base font-bold pt-2 border-t border-slate-200"><span class="text-slate-800">Total Belanja</span><span class="app-text" x-text="formatIDR(cartTotal)"></span></div>
-                        
-                        <!-- Input Tunai & Pecahan Cepat -->
-                        <div x-show="posPaymentMethod === 'Tunai'" class="space-y-2">
-                            <div class="flex justify-between text-sm items-center">
-                                <span class="text-slate-500 font-medium">Uang Pembayaran</span>
-                                <input type="number" x-model.number="posCash" class="w-36 bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-right text-sm font-semibold focus:ring-2 focus:ring-emerald-500" placeholder="0">
+                        <!-- Box Total Belanja Kontras -->
+                        <div class="p-3 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-between">
+                            <div>
+                                <span class="text-[11px] font-semibold text-emerald-800 block uppercase tracking-wider">Total Tagihan</span>
+                                <span class="text-xs text-slate-500" x-show="posDiscount > 0" x-text="'Hemat: ' + formatIDR(posDiscount)"></span>
                             </div>
-                            <!-- Tombol Nominal Cepat -->
-                            <div class="flex flex-wrap gap-1.5 justify-end">
-                                <button type="button" @click="setQuickCash('exact')" class="px-2 py-1 bg-white border border-slate-200 hover:border-emerald-500 text-[11px] font-bold app-text rounded-md shadow-2xs">Uang Pas</button>
-                                <button type="button" @click="setQuickCash(10000)" class="px-2 py-1 bg-white border border-slate-200 hover:border-emerald-500 text-[11px] font-medium text-slate-700 rounded-md shadow-2xs">+10rb</button>
-                                <button type="button" @click="setQuickCash(20000)" class="px-2 py-1 bg-white border border-slate-200 hover:border-emerald-500 text-[11px] font-medium text-slate-700 rounded-md shadow-2xs">+20rb</button>
-                                <button type="button" @click="setQuickCash(50000)" class="px-2 py-1 bg-white border border-slate-200 hover:border-emerald-500 text-[11px] font-medium text-slate-700 rounded-md shadow-2xs">+50rb</button>
-                                <button type="button" @click="setQuickCash(100000)" class="px-2 py-1 bg-white border border-slate-200 hover:border-emerald-500 text-[11px] font-medium text-slate-700 rounded-md shadow-2xs">+100rb</button>
-                                <button type="button" @click="posCash = 0" class="px-2 py-1 bg-rose-50 text-rose-600 text-[11px] font-semibold rounded-md">C</button>
-                            </div>
-                            <div class="flex justify-between text-sm"><span class="text-slate-500">Kembalian</span><span class="font-semibold" :class="posChange < 0 ? 'text-rose-600' : 'app-text'" x-text="formatIDR(posChange)"></span></div>
+                            <span class="font-black app-text text-xl sm:text-2xl" x-text="formatIDR(cartTotal)"></span>
                         </div>
 
-                        <!-- Info QRIS -->
-                        <div x-show="posPaymentMethod === 'QRIS'" class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs">
-                            <div><p class="font-bold text-emerald-800">Pembayaran QRIS</p><p class="text-emerald-600">Pelanggan scan barcode QRIS</p></div>
-                            <button type="button" @click="isQrisModalOpen = true" class="px-3 py-1.5 app-primary text-white font-semibold rounded-lg shadow-sm">Buka QRIS</button>
+                        <!-- Pilihan Metode Pembayaran -->
+                        <div class="grid grid-cols-3 gap-1 bg-slate-200/70 p-1 rounded-xl text-xs font-semibold text-center">
+                            <button type="button" @click="posPaymentMethod = 'Tunai'; posCash = cartTotal" :class="posPaymentMethod === 'Tunai' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'" class="py-1.5 rounded-lg transition">Tunai</button>
+                            <button type="button" @click="posPaymentMethod = 'QRIS'; isQrisModalOpen = true" :class="posPaymentMethod === 'QRIS' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'" class="py-1.5 rounded-lg transition">QRIS</button>
+                            <button type="button" @click="posPaymentMethod = 'Transfer'" :class="posPaymentMethod === 'Transfer' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'" class="py-1.5 rounded-lg transition">Transfer</button>
                         </div>
 
-                        <!-- Info Transfer -->
-                        <div x-show="posPaymentMethod === 'Transfer'" class="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs space-y-1">
-                            <p class="font-bold text-blue-900">Rekening Transfer Toko:</p>
+                        <!-- Section Khusus Tunai -->
+                        <div x-show="posPaymentMethod === 'Tunai'" class="space-y-2 pt-1">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-xs text-slate-600 font-semibold shrink-0">Uang Diterima:</span>
+                                <div class="relative flex-1">
+                                    <span class="absolute left-2.5 top-1.5 text-xs text-slate-400 font-bold">Rp</span>
+                                    <input type="number" 
+                                           x-model.number="posCash" 
+                                           class="w-full bg-white border border-slate-200 rounded-lg pl-8 pr-2.5 py-1.5 text-right text-sm font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none" 
+                                           placeholder="0">
+                                </div>
+                            </div>
+
+                            <!-- Tombol Pecahan Cepat Rapi -->
+                            <div class="grid grid-cols-5 gap-1 text-[11px]">
+                                <button type="button" @click="posCash = cartTotal" class="py-1 bg-white border border-slate-200 hover:border-emerald-500 text-slate-800 font-bold rounded-lg shadow-2xs">Pas</button>
+                                <button type="button" @click="setQuickCash(10000)" class="py-1 bg-white border border-slate-200 hover:border-emerald-500 text-slate-700 font-medium rounded-lg shadow-2xs">+10k</button>
+                                <button type="button" @click="setQuickCash(20000)" class="py-1 bg-white border border-slate-200 hover:border-emerald-500 text-slate-700 font-medium rounded-lg shadow-2xs">+20k</button>
+                                <button type="button" @click="setQuickCash(50000)" class="py-1 bg-white border border-slate-200 hover:border-emerald-500 text-slate-700 font-medium rounded-lg shadow-2xs">+50k</button>
+                                <button type="button" @click="posCash = 0" class="py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold rounded-lg transition">C</button>
+                            </div>
+
+                            <!-- Kembalian Display -->
+                            <div class="px-3 py-2 rounded-xl flex items-center justify-between text-xs font-semibold" 
+                                 :class="posChange < 0 ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-emerald-50 text-emerald-800 border border-emerald-200'">
+                                <span x-text="posChange < 0 ? 'Uang Masih Kurang' : 'Kembalian Pelanggan'"></span>
+                                <span class="text-sm font-black" x-text="formatIDR(Math.abs(posChange))"></span>
+                            </div>
+                        </div>
+
+                        <!-- Section QRIS -->
+                        <div x-show="posPaymentMethod === 'QRIS'" class="p-2.5 bg-emerald-50/70 border border-emerald-200 rounded-xl flex items-center justify-between text-xs">
+                            <div>
+                                <p class="font-bold text-emerald-800">Scan QRIS Toko</p>
+                                <p class="text-[11px] text-emerald-600">Pastikan pembayaran berhasil</p>
+                            </div>
+                            <button type="button" @click="isQrisModalOpen = true" class="px-3 py-1.5 app-primary text-white font-semibold rounded-lg shadow-2xs">Buka QRIS</button>
+                        </div>
+
+                        <!-- Section Transfer -->
+                        <div x-show="posPaymentMethod === 'Transfer'" class="p-2.5 bg-blue-50/70 border border-blue-200 rounded-xl text-xs space-y-0.5">
+                            <p class="font-bold text-blue-900">Rekening Tujuan:</p>
                             <p class="text-blue-700 font-mono text-xs" x-text="settings.bankAccount || 'BCA 1234567890 a/n KOPMA'"></p>
                         </div>
 
-                        <button @click="processCheckout()" :disabled="cart.length === 0 || (posPaymentMethod === 'Tunai' && posChange < 0)" class="w-full mt-3 py-3 app-primary app-primary-hover disabled:bg-slate-300 text-white font-bold rounded-xl shadow-lg transition flex items-center justify-center space-x-2">
-                            <i data-lucide="check-circle" class="w-5 h-5"></i>
-                            <span x-text="'Simpan & Cetak Struk (' + posPaymentMethod + ')'"></span>
+                        <!-- Tombol Bayar & Selesai -->
+                        <button @click="processCheckout()" 
+                                :disabled="cart.length === 0 || (posPaymentMethod === 'Tunai' && posChange < 0)" 
+                                class="w-full py-3 app-primary app-primary-hover disabled:bg-slate-300 disabled:shadow-none text-white font-bold rounded-xl shadow-lg transition flex items-center justify-center space-x-2 text-sm">
+                            <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                            <span x-text="'Bayar & Cetak Struk [F4]'"></span>
                         </button>
-                        <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1">
-                            <span>Shortcut: <b>F2</b> Scan/Cari | <b>F4</b> Bayar | <b>F8</b> Kosongkan</span>
-                        </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Floating Quick Cart Button saat keranjang disembunyikan tapi ada isinya -->
+            <div x-show="activeTab === 'kasir' && cart.length > 0 && !showPosCart" 
+                 x-transition:enter="transition ease-out duration-200"
+                 x-transition:enter-start="opacity-0 translate-y-4 scale-95"
+                 x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                 class="fixed bottom-20 sm:bottom-24 right-4 sm:right-8 z-30 pointer-events-auto" x-cloak>
+                <button type="button" @click="showPosCart = true; $nextTick(() => refreshIcons())" class="px-5 py-3.5 app-primary app-primary-hover text-white rounded-2xl shadow-2xl flex items-center space-x-3 transition transform hover:scale-105 active:scale-95 border border-white/20">
+                    <div class="relative">
+                        <i data-lucide="shopping-cart" class="w-5 h-5"></i>
+                        <span class="absolute -top-2 -right-2 bg-rose-500 text-white text-[10px] font-bold min-w-4 h-4 px-1 rounded-full flex items-center justify-center shadow-xs" x-text="cart.reduce((s,i) => s + i.qty, 0)"></span>
+                    </div>
+                    <div class="text-left">
+                        <p class="text-[11px] font-medium opacity-90 leading-tight">Buka Keranjang</p>
+                        <p class="text-sm font-bold leading-tight" x-text="formatIDR(cartTotal)"></p>
+                    </div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 ml-1"></i>
+                </button>
             </div>
 
             <!-- 3. PRODUK MODULE -->
@@ -912,7 +1136,7 @@
                                 <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Nama Toko</label>
                                 <div class="relative">
                                     <i data-lucide="store" class="w-4 h-4 absolute left-3.5 top-3 text-slate-400"></i>
-                                    <input type="text" x-model="settings.storeName" required placeholder="Contoh: KOPMA Store" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                    <input type="text" x-model="settingsForm.storeName" required placeholder="Contoh: KOPMA Store" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500">
                                 </div>
                             </div>
 
@@ -920,7 +1144,7 @@
                                 <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Nomor Telepon Toko</label>
                                 <div class="relative">
                                     <i data-lucide="phone" class="w-4 h-4 absolute left-3.5 top-3 text-slate-400"></i>
-                                    <input type="text" x-model="settings.phone" placeholder="Contoh: 081234567890" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                    <input type="text" x-model="settingsForm.phone" placeholder="Contoh: 081234567890" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500">
                                 </div>
                             </div>
 
@@ -928,7 +1152,7 @@
                                 <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Alamat Toko (Dicetak di Bagian Atas Struk)</label>
                                 <div class="relative">
                                     <i data-lucide="map-pin" class="w-4 h-4 absolute left-3.5 top-3 text-slate-400"></i>
-                                    <textarea x-model="settings.address" rows="2" placeholder="Alamat lengkap toko yang tercetak di bagian atas struk" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+                                    <textarea x-model="settingsForm.address" rows="2" placeholder="Alamat lengkap toko yang tercetak di bagian atas struk" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
                                 </div>
                             </div>
 
@@ -936,7 +1160,7 @@
                                 <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Pesan Footer Struk</label>
                                 <div class="relative">
                                     <i data-lucide="file-text" class="w-4 h-4 absolute left-3.5 top-3 text-slate-400"></i>
-                                    <input type="text" x-model="settings.receiptNote" placeholder="Contoh: Terima kasih telah berbelanja di toko kami" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                    <input type="text" x-model="settingsForm.receiptNote" placeholder="Contoh: Terima kasih telah berbelanja di toko kami" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500">
                                 </div>
                             </div>
 
@@ -944,7 +1168,7 @@
                                 <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Rekening Bank / Info Transfer</label>
                                 <div class="relative">
                                     <i data-lucide="credit-card" class="w-4 h-4 absolute left-3.5 top-3 text-slate-400"></i>
-                                    <input type="text" x-model="settings.bankAccount" placeholder="BCA 1234567890 a/n KOPMA" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                    <input type="text" x-model="settingsForm.bankAccount" placeholder="BCA 1234567890 a/n KOPMA" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500">
                                 </div>
                             </div>
 
@@ -959,7 +1183,7 @@
                                     </div>
                                 </div>
                                 <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" x-model="settings.soundEnabled" class="sr-only peer">
+                                    <input type="checkbox" x-model="settingsForm.soundEnabled" class="sr-only peer">
                                     <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
                                 </label>
                             </div>
@@ -1232,23 +1456,41 @@
                                 </label>
                             </div>
                         </div>
-
-                        <div class="flex items-center justify-between p-3">
-                            <div>
-                                <h4 class="font-semibold text-slate-800 text-sm">Unduh Rekap Laporan Penjualan (CSV / Excel)</h4>
-                                <p class="text-xs text-slate-400">Format rapi berstandar akuntansi, siap dibuka di Microsoft Excel atau Google Sheets.</p>
-                            </div>
-                            <button @click="openExportModal('all')" class="px-4 py-2 app-primary app-primary-hover text-white font-semibold rounded-xl text-xs transition flex items-center space-x-2 shadow-sm"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i><span>Download CSV</span></button>
-                        </div>
                     </div>
 
                     <div class="pt-6 border-t border-slate-100 space-y-4">
-                        <div class="flex justify-between items-center"><h4 class="font-bold text-slate-800 text-base">Manajemen Pengguna (Admin & Kasir)</h4><button @click="openUserModal()" class="px-3 py-1.5 app-primary text-white font-semibold rounded-lg text-xs">Tambah Akun</button></div>
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-base">Manajemen Pengguna (Admin & Kasir)</h4>
+                                <p class="text-xs text-slate-400">Kelola akun dan atur ulang password akun pengguna.</p>
+                            </div>
+                            <button @click="openUserModal()" class="px-3 py-1.5 app-primary text-white font-semibold rounded-lg text-xs flex items-center space-x-1.5 shadow-xs">
+                                <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+                                <span>Tambah Akun</span>
+                            </button>
+                        </div>
                         <div class="space-y-2">
                             <template x-for="usr in users" :key="usr.username">
-                                <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl text-sm">
-                                    <div><p class="font-semibold text-slate-800" x-text="usr.name + ' (' + usr.username + ')'"></p><p class="text-xs app-text uppercase font-medium" x-text="usr.role"></p></div>
-                                    <button @click="confirmDeleteUser(usr.username)" class="text-rose-500 hover:text-rose-700 text-xs font-semibold" x-show="usr.username !== 'admin'">Hapus</button>
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-slate-50 border border-slate-200/70 rounded-xl text-sm gap-2">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-9 h-9 rounded-full bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-xs uppercase" x-text="(usr.username || 'U').slice(0, 2)"></div>
+                                        <div>
+                                            <p class="font-semibold text-slate-800 flex items-center gap-1.5">
+                                                <span x-text="usr.name"></span>
+                                                <span class="text-xs font-mono text-slate-400" x-text="'(@' + usr.username + ')'"></span>
+                                            </p>
+                                            <p class="text-xs app-text uppercase font-semibold" x-text="usr.role"></p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-2 self-end sm:self-center">
+                                        <button type="button" @click="openResetPasswordModal(usr)" class="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition shadow-2xs" title="Atur ulang password untuk akun ini">
+                                            <i data-lucide="key-round" class="w-3.5 h-3.5 text-amber-500"></i>
+                                            <span>Atur Password</span>
+                                        </button>
+                                        <button type="button" @click="confirmDeleteUser(usr.username)" class="px-2.5 py-1.5 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-lg text-xs font-semibold transition shadow-2xs" x-show="usr.username !== 'admin'" title="Hapus akun pengguna">
+                                            Hapus
+                                        </button>
+                                    </div>
                                 </div>
                             </template>
                         </div>
@@ -1273,11 +1515,11 @@
                         
                         <!-- Cart items badge for Kasir -->
                         <template x-if="tab.id === 'kasir' && cart.length > 0">
-                            <span class="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-bold min-w-4 h-4 px-1 rounded-full flex items-center justify-center shadow animate-bounce" x-text="cart.reduce((s,i) => s + i.qty, 0)"></span>
+                            <span class="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-bold min-w-4 h-4 px-1 rounded-full flex items-center justify-center shadow-xs" x-text="cart.reduce((s,i) => s + i.qty, 0)"></span>
                         </template>
                         <!-- Low stock alert badge for Stok -->
                         <template x-if="tab.id === 'stok' && lowStockProducts.length > 0">
-                            <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-white animate-pulse"></span>
+                            <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-white"></span>
                         </template>
                     </button>
                 </template>
@@ -1453,18 +1695,85 @@
     </div>
 
     <div x-show="isUserModalOpen" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" x-cloak>
-        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl space-y-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl space-y-4" @click.away="isUserModalOpen = false">
             <h3 class="font-bold text-slate-800 text-lg">Tambah Akun Pengguna</h3>
             <div class="space-y-3">
-                <div><label class="block text-xs font-semibold text-slate-600 mb-1">Nama Lengkap</label><input type="text" x-model="userForm.name" class="w-full border rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"></div>
-                <div><label class="block text-xs font-semibold text-slate-600 mb-1">Username</label><input type="text" x-model="userForm.username" class="w-full border rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"></div>
-                <div><label class="block text-xs font-semibold text-slate-600 mb-1">Password</label><input type="password" x-model="userForm.password" class="w-full border rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"></div>
-                <div><label class="block text-xs font-semibold text-slate-600 mb-1">Role / Peran</label><select x-model="userForm.role" class="w-full border rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"><option value="kasir">Kasir</option><option value="admin">Admin</option></select></div>
+                <div><label class="block text-xs font-semibold text-slate-600 mb-1">Nama Lengkap</label><input type="text" x-model="userForm.name" placeholder="Contoh: Budi Santoso" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"></div>
+                <div><label class="block text-xs font-semibold text-slate-600 mb-1">Username</label><input type="text" x-model="userForm.username" placeholder="Contoh: kasir2" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"></div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
+                    <div class="relative">
+                        <input :type="userForm.showPassword ? 'text' : 'password'" x-model="userForm.password" placeholder="Masukkan password" class="w-full border border-slate-200 rounded-xl pl-3 pr-10 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        <button type="button" @click="userForm.showPassword = !userForm.showPassword; $nextTick(() => refreshIcons())" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 focus:outline-none" title="Tampilkan / Sembunyikan Password">
+                            <i :data-lucide="userForm.showPassword ? 'eye-off' : 'eye'" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+                <div><label class="block text-xs font-semibold text-slate-600 mb-1">Role / Peran</label><select x-model="userForm.role" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"><option value="kasir">Kasir</option><option value="admin">Admin</option></select></div>
             </div>
             <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100">
-                <button @click="isUserModalOpen = false" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-sm font-semibold">Batal</button>
-                <button @click="saveUser()" class="px-4 py-2 app-primary text-white rounded-xl text-sm font-semibold">Simpan Akun</button>
+                <button @click="isUserModalOpen = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-sm font-semibold transition">Batal</button>
+                <button @click="saveUser()" class="px-4 py-2 app-primary app-primary-hover text-white rounded-xl text-sm font-semibold transition">Simpan Akun</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal Atur Ulang Password Pengguna -->
+    <div x-show="isResetPasswordModalOpen" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" x-cloak>
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl space-y-4" @click.away="isResetPasswordModalOpen = false">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center space-x-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                        <i data-lucide="key-round" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-base">Atur Ulang Password</h3>
+                        <p class="text-xs text-slate-500" x-text="resetPasswordForm.name + ' (@' + resetPasswordForm.username + ')'"></p>
+                    </div>
+                </div>
+                <button type="button" @click="isResetPasswordModalOpen = false" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form @submit.prevent="saveResetPassword()" class="space-y-3.5">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Password Baru</label>
+                    <div class="relative">
+                        <input :type="resetPasswordForm.showPassword ? 'text' : 'password'" 
+                               x-model="resetPasswordForm.newPassword" 
+                               required 
+                               placeholder="Masukkan password baru" 
+                               class="w-full border border-slate-200 rounded-xl pl-3 pr-10 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        <button type="button" 
+                                @click="resetPasswordForm.showPassword = !resetPasswordForm.showPassword; $nextTick(() => refreshIcons())" 
+                                class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 focus:outline-none"
+                                title="Tampilkan / Sembunyikan Password">
+                            <i :data-lucide="resetPasswordForm.showPassword ? 'eye-off' : 'eye'" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Konfirmasi Password Baru</label>
+                    <div class="relative">
+                        <input :type="resetPasswordForm.showPassword ? 'text' : 'password'" 
+                               x-model="resetPasswordForm.confirmPassword" 
+                               placeholder="Ulangi password baru" 
+                               class="w-full border border-slate-200 rounded-xl pl-3 pr-10 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+                    <button type="button" @click="isResetPasswordModalOpen = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-sm font-semibold transition">
+                        Batal
+                    </button>
+                    <button type="submit" class="px-4 py-2 app-primary app-primary-hover text-white rounded-xl text-sm font-semibold transition flex items-center space-x-1.5 shadow-sm">
+                        <i data-lucide="check" class="w-4 h-4"></i>
+                        <span>Simpan Password</span>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -1824,7 +2133,8 @@
                     { id: 'pengaturan', name: 'Pengaturan', icon: 'settings', roles: ['admin'] }
                 ],
                 users: [{ username: 'admin', password: 'admin', name: 'Administrator', role: 'admin', profileImage: '' }, { username: 'kasir', password: 'kasir', name: 'Kasir Utama', role: 'kasir', profileImage: '' }],
-                settings: { storeName: 'KOPMA Store', address: 'Gedung Koperasi Mahasiswa', phone: '081234567890', receiptNote: 'Terima kasih telah berbelanja di KOPMA.', theme: 'emerald', soundEnabled: true, bankAccount: 'BCA 1234567890 a/n KOPMA' },
+                settings: { storeName: 'KOPMA Store', address: 'Gedung Koperasi Mahasiswa', phone: '081234567890', receiptNote: 'Terima kasih telah berbelanja di KOPMA.', theme: 'emerald', soundEnabled: true, bankAccount: 'BCA 1234567890 a/n KOPMA', updatedAt: 0 },
+                settingsForm: { storeName: 'KOPMA Store', address: 'Gedung Koperasi Mahasiswa', phone: '081234567890', receiptNote: 'Terima kasih telah berbelanja di KOPMA.', theme: 'emerald', soundEnabled: true, bankAccount: 'BCA 1234567890 a/n KOPMA' },
                 themeOptions: [
                     {key:'emerald', name:'Hijau', color:'#059669', dark:'#047857', soft:'#ecfdf5'},
                     {key:'blue', name:'Biru', color:'#2563eb', dark:'#1d4ed8', soft:'#eff6ff'},
@@ -1840,14 +2150,15 @@
                 // Google Drive Data Center (Pusat Data Tunggal)
                 driveUser: null, driveToken: null, driveFiles: [], isDriveLoading: false, isDriveUploading: false,
                 isDriveSyncing: false, lastDriveSyncTime: '', lastDriveModifiedTime: '', _driveSyncTimeout: null,
-                posSearch: '', posCategoryFilter: '', cart: [], posDiscount: 0, posCash: 0, posPaymentMethod: 'Tunai', posCustomerName: '',
+                posSearch: '', posCategoryFilter: '', posViewMode: 'grid', cart: [], showPosCart: false, posDiscount: 0, posCash: 0, posPaymentMethod: 'Tunai', posCustomerName: '',
                 productSearch: '', productFilterStock: 'all', productSortBy: 'name', historySearch: '', reportFilter: 'all',
                 toast: { show: false, message: '' }, confirmModal: { show: false, title: '', message: '', onConfirm: () => {} },
                 currentDateStr: '', currentTimeStr: '', receiptData: null,
                 isProductModalOpen: false, isEditMode: false, productForm: {}, productImageRefresh: 0,
                 isCategoryModalOpen: false, isCategoryEditMode: false, categoryForm: {},
                 isStockModalOpen: false, stockForm: { productId: '', type: 'IN', qty: 1, note: '' },
-                isUserModalOpen: false, userForm: {}, isDetailModalOpen: false, selectedTrx: null, isProfileModalOpen: false, profileTarget: 'dashboard',
+                isUserModalOpen: false, userForm: {}, isResetPasswordModalOpen: false, resetPasswordForm: { username: '', name: '', newPassword: '', confirmPassword: '', showPassword: false },
+                isDetailModalOpen: false, selectedTrx: null, isProfileModalOpen: false, profileTarget: 'dashboard',
                 isCompressingImage: false, isCompressingProfile: false, imageCompressionInfo: null,
                 isQrisModalOpen: false, isExportModalOpen: false, isSavingSettings: false,
                 _serverPushTimeout: null,
@@ -1932,17 +2243,25 @@
                     }, 500);
                 },
 
+                _iconRaf: null,
                 refreshIcons() {
-                    setTimeout(() => {
+                    if (this._iconRaf) {
+                        cancelAnimationFrame(this._iconRaf);
+                    }
+                    this._iconRaf = requestAnimationFrame(() => {
+                        this._iconRaf = null;
                         if (window.lucide && typeof window.lucide.createIcons === 'function') {
                             window.lucide.createIcons();
                         }
-                    }, 50);
+                    });
                 },
 
                 switchTab(tabId) {
                     if (this.activeTab === tabId) return;
                     this.activeTab = tabId;
+                    if (tabId === 'pengaturan') {
+                        this.settingsForm = { ...this.settings };
+                    }
                     window.scrollTo({ top: 0, behavior: 'instant' });
                     this.playSound('tap');
                     this.refreshIcons();
@@ -1951,6 +2270,7 @@
                 init() {
                     this.updateDateTime(); 
                     this.loadLocalStorage();
+                    this.settingsForm = { ...this.settings };
                     this.checkAutoDailyReset();
                     setInterval(() => {
                         this.updateDateTime();
@@ -1997,21 +2317,25 @@
                         }
                     }, 20000);
 
-                    // Sinkronisasi Cloud Server Utama: Langsung terhubung & sinkron otomatis real-time (setiap 3.5 detik)
+                    // Sinkronisasi Cloud Server Utama: Ringan, hemat baterai, dan responsif (setiap 5 detik saat aktif)
                     this.initServerSync(false);
                     setInterval(() => {
-                        if (!this.isServerSyncing) {
+                        if (!this.isServerSyncing && !document.hidden) {
                             this.initServerSync(false);
                         }
-                    }, 3500);
+                    }, 5000);
                     setTimeout(() => this.autoMigrateBase64Images(), 1500);
 
-                    window.addEventListener('focus', () => {
-                        this.initServerSync(false);
-                        if (this.driveToken && !this.isDriveSyncing) {
-                            this.pollDriveMaster();
+                    const handleTabWakeup = () => {
+                        if (!document.hidden) {
+                            this.initServerSync(false);
+                            if (this.driveToken && !this.isDriveSyncing) {
+                                this.pollDriveMaster();
+                            }
                         }
-                    });
+                    };
+                    window.addEventListener('focus', handleTabWakeup);
+                    document.addEventListener('visibilitychange', handleTabWakeup);
 
                     window.addEventListener('online', () => {
                         this.initServerSync(false);
@@ -2036,16 +2360,24 @@
                     });
                     
                     // Auto-refresh icons whenever tab changes or modal toggles
-                    this.$watch('activeTab', () => this.refreshIcons());
+                    this.$watch('activeTab', (tab) => {
+                        if (tab === 'pengaturan') {
+                            this.settingsForm = { ...this.settings };
+                        }
+                        this.refreshIcons();
+                    });
                     this.$watch('isLoggedIn', () => this.refreshIcons());
                     this.$watch('isProductModalOpen', () => this.refreshIcons());
                     this.$watch('isCategoryModalOpen', () => this.refreshIcons());
                     this.$watch('isStockModalOpen', () => this.refreshIcons());
                     this.$watch('isUserModalOpen', () => this.refreshIcons());
+                    this.$watch('isResetPasswordModalOpen', () => this.refreshIcons());
                     this.$watch('isDetailModalOpen', () => this.refreshIcons());
                     this.$watch('isProfileModalOpen', () => this.refreshIcons());
                     this.$watch('isQrisModalOpen', () => this.refreshIcons());
                     this.$watch('isExportModalOpen', () => this.refreshIcons());
+                    this.$watch('showPosCart', () => this.refreshIcons());
+                    this.$watch('posViewMode', () => this.refreshIcons());
                     this.refreshIcons();
                 },
 
@@ -2222,8 +2554,11 @@
                                 this.products = dbData.products;
                                 hasChanges = true;
                             }
-                        } else if (this.products.length > 0) {
-                            await this.pushFullStateToServer();
+                        } else if (this.products.length > 0 && (!dbData.products || dbData.products.length === 0)) {
+                            if (!this._hasInitialPushed) {
+                                this._hasInitialPushed = true;
+                                await this.pushFullStateToServer();
+                            }
                         }
 
                         if (Array.isArray(dbData.categories) && dbData.categories.length > 0) {
@@ -2231,8 +2566,11 @@
                                 this.categories = dbData.categories;
                                 hasChanges = true;
                             }
-                        } else if (this.categories.length > 0) {
-                            await this.pushFullStateToServer();
+                        } else if (this.categories.length > 0 && (!dbData.categories || dbData.categories.length === 0)) {
+                            if (!this._hasInitialPushed) {
+                                this._hasInitialPushed = true;
+                                await this.pushFullStateToServer();
+                            }
                         }
 
                         if (Array.isArray(dbData.transactions)) {
@@ -2275,10 +2613,16 @@
                             }
                         }
                         if (dbData.settings && typeof dbData.settings === 'object' && dbData.settings.storeName) {
-                            this.settings = { ...this.settings, ...dbData.settings };
+                            const incomingTime = dbData.settings.updatedAt || 0;
+                            const localTime = this.settings.updatedAt || 0;
+                            // Jangan timpa input jika user sedang membuka tab pengaturan atau sedang menyimpan
+                            if (incomingTime >= localTime && this.activeTab !== 'pengaturan' && !this.isSavingSettings) {
+                                this.settings = { ...this.settings, ...dbData.settings };
+                                this.settingsForm = { ...this.settings };
+                            }
                         }
 
-                        this.saveLocalStorage();
+                        this.saveLocalStorage(false);
                         this.serverSyncReady = true;
                         this.lastSyncTimeStr = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
                         if (hasChanges) {
@@ -2543,65 +2887,43 @@
                     const username = String(this.loginForm.username || '').trim().toLowerCase();
                     const password = String(this.loginForm.password || '').trim();
 
-                    // 1. Akun Admin: username: admin, password: admin (juga menerima toleransi admin123)
-                    if (username === 'admin' && (password === 'admin' || password === 'admin123')) {
-                        let adminUser = this.users.find(u => String(u.username || '').toLowerCase() === 'admin');
-                        if (!adminUser) {
-                            adminUser = { username: 'admin', password: 'admin', name: 'Administrator', role: 'admin', profileImage: '' };
-                            this.users.unshift(adminUser);
-                        } else {
-                            adminUser.password = 'admin';
-                        }
-                        this.currentUser = { ...adminUser };
-                        this.isLoggedIn = true;
-                        sessionStorage.setItem('pos_session', JSON.stringify({ username: adminUser.username, name: adminUser.name, role: adminUser.role }));
-                        this.saveLocalStorage();
-                        this.loginForm.password = '';
-                        this.playSound('success');
-                        this.showToast('Login berhasil sebagai ' + adminUser.name);
-                        this.refreshIcons();
-                        return;
-                    }
-
-                    // 2. Akun Kasir: username: kasir, password: kasir (juga menerima toleransi kasir123)
-                    if (username === 'kasir' && (password === 'kasir' || password === 'kasir123')) {
-                        let kasirUser = this.users.find(u => String(u.username || '').toLowerCase() === 'kasir');
-                        if (!kasirUser) {
-                            kasirUser = { username: 'kasir', password: 'kasir', name: 'Kasir Utama', role: 'kasir', profileImage: '' };
-                            this.users.push(kasirUser);
-                        } else {
-                            kasirUser.password = 'kasir';
-                        }
-                        this.currentUser = { ...kasirUser };
-                        this.activeTab = 'kasir';
-                        this.isLoggedIn = true;
-                        sessionStorage.setItem('pos_session', JSON.stringify({ username: kasirUser.username, name: kasirUser.name, role: kasirUser.role }));
-                        this.saveLocalStorage();
-                        this.loginForm.password = '';
-                        this.playSound('success');
-                        this.showToast('Login berhasil sebagai ' + kasirUser.name);
-                        this.refreshIcons();
-                        return;
-                    }
-
-                    // 3. Pengecekan user kustom lainnya
-                    const found = this.users.find(u => 
-                        String(u.username || '').trim().toLowerCase() === username && 
-                        String(u.password || '').trim() === password
-                    );
-                    if (found) {
-                        this.currentUser = { ...found };
-                        if (found.role !== 'admin') this.activeTab = 'kasir';
-                        this.isLoggedIn = true;
-                        sessionStorage.setItem('pos_session', JSON.stringify({ username: found.username, name: found.name, role: found.role }));
-                        this.loginForm.password = '';
-                        this.playSound('success');
-                        this.showToast('Login berhasil sebagai ' + found.name);
-                        this.refreshIcons();
-                    } else {
+                    if (!username || !password) {
                         this.playSound('beep');
-                        this.showToast('Username atau password salah! Silakan coba lagi.');
+                        this.showToast('Silakan isi username dan password!');
+                        return;
                     }
+
+                    // Cari akun pengguna berdasarkan username
+                    let user = this.users.find(u => String(u.username || '').trim().toLowerCase() === username);
+
+                    // Fallback inisialisasi akun bawaan jika belum terdaftar sama sekali di database
+                    if (!user && username === 'admin' && (password === 'admin' || password === 'admin123')) {
+                        user = { username: 'admin', password: 'admin', name: 'Administrator', role: 'admin', profileImage: '' };
+                        this.users.unshift(user);
+                    } else if (!user && username === 'kasir' && (password === 'kasir' || password === 'kasir123')) {
+                        user = { username: 'kasir', password: 'kasir', name: 'Kasir Utama', role: 'kasir', profileImage: '' };
+                        this.users.push(user);
+                    }
+
+                    if (user && String(user.password || '').trim() === password) {
+                        this.currentUser = { ...user };
+                        if (user.role !== 'admin') {
+                            this.activeTab = 'kasir';
+                        } else {
+                            this.activeTab = 'dashboard';
+                        }
+                        this.isLoggedIn = true;
+                        sessionStorage.setItem('pos_session', JSON.stringify({ username: user.username, name: user.name, role: user.role }));
+                        this.saveLocalStorage();
+                        this.loginForm.password = '';
+                        this.playSound('success');
+                        this.showToast('Login berhasil sebagai ' + user.name);
+                        this.refreshIcons();
+                        return;
+                    }
+
+                    this.playSound('beep');
+                    this.showToast('Username atau password salah! Silakan coba lagi.');
                 },
                 logout() {
                     this.isLoggedIn = false;
@@ -2621,29 +2943,31 @@
                     ['products','categories','transactions','dailyArchives','permanentHistory','stockLogs','deletedStockLogIds','settings','users'].forEach(k => {
                         if(localStorage.getItem('pos_'+k)) this[k] = JSON.parse(localStorage.getItem('pos_'+k));
                     });
-                    // Pastikan admin dan kasir selalu siap dengan password 'admin' dan 'kasir'
+                    // Pastikan admin dan kasir selalu siap tanpa menimpa password yang sudah diubah/diatur ulang
                     let adminUser = this.users.find(u => String(u.username || '').toLowerCase() === 'admin');
-                    if (adminUser) {
-                        adminUser.password = 'admin';
-                    } else {
+                    if (!adminUser) {
                         this.users.unshift({ username: 'admin', password: 'admin', name: 'Administrator', role: 'admin', profileImage: '' });
+                    } else if (!adminUser.password) {
+                        adminUser.password = 'admin';
                     }
                     let kasirUser = this.users.find(u => String(u.username || '').toLowerCase() === 'kasir');
-                    if (kasirUser) {
-                        kasirUser.password = 'kasir';
-                    } else {
+                    if (!kasirUser) {
                         this.users.push({ username: 'kasir', password: 'kasir', name: 'Kasir Utama', role: 'kasir', profileImage: '' });
+                    } else if (!kasirUser.password) {
+                        kasirUser.password = 'kasir';
                     }
                     this.saveLocalStorage();
                     const savedGasUrl = localStorage.getItem('pos_gasUrl');
                     if (savedGasUrl) this.gasUrlInput = this.normalizeGasUrl(savedGasUrl);
                 },
-                saveLocalStorage() {
+                saveLocalStorage(syncRemote = true) {
                     ['products','categories','transactions','dailyArchives','permanentHistory','stockLogs','deletedStockLogIds','settings','users'].forEach(k => {
                         localStorage.setItem('pos_'+k, JSON.stringify(this[k]));
                     });
-                    this.queueDriveSync();
-                    this.queueServerPush();
+                    if (syncRemote) {
+                        this.queueDriveSync();
+                        this.queueServerPush();
+                    }
                 },
                 updateDateTime() { const d = new Date(); this.currentDateStr = d.toLocaleDateString('id-ID', {weekday:'long',year:'numeric',month:'long',day:'numeric'}); this.currentTimeStr = d.toLocaleTimeString('id-ID'); },
                 formatIDR(num) { return new Intl.NumberFormat('id-ID', {style:'currency',currency:'IDR',maximumFractionDigits:0}).format(num||0); },
@@ -2680,6 +3004,8 @@
                         this.cart.push({...prod, qty: 1}); 
                         this.playSound('beep');
                     }
+                    this.showPosCart = true;
+                    this.$nextTick(() => this.refreshIcons());
                 },
                 updateCartQty(idx, delta) { 
                     const item = this.cart[idx]; const prod = this.products.find(p => p.id === item.id);
@@ -2692,22 +3018,47 @@
                             this.showToast('Stok maksimum tercapai!'); 
                         }
                     } else {
-                        this.cart.splice(idx, 1); 
+                        this.cart.splice(idx, 1);
+                        if (this.cart.length === 0) this.showPosCart = false;
                     }
+                    this.$nextTick(() => this.refreshIcons());
                 },
-                removeFromCart(idx) { this.cart.splice(idx, 1); }, 
+                onCartQtyInput(idx) {
+                    const item = this.cart[idx];
+                    if (!item) return;
+                    const prod = this.products.find(p => p.id === item.id);
+                    let qty = parseInt(item.qty, 10);
+                    if (isNaN(qty) || qty <= 0) {
+                        this.cart.splice(idx, 1);
+                        if (this.cart.length === 0) this.showPosCart = false;
+                    } else {
+                        if (prod && qty > prod.stock) {
+                            qty = prod.stock;
+                            this.showToast('Kuantitas disesuaikan stok maksimum (' + prod.stock + ')');
+                        }
+                        item.qty = qty;
+                    }
+                    this.$nextTick(() => this.refreshIcons());
+                },
+                removeFromCart(idx) { 
+                    this.cart.splice(idx, 1); 
+                    if (this.cart.length === 0) this.showPosCart = false;
+                    this.$nextTick(() => this.refreshIcons());
+                }, 
                 clearCart() { 
                     this.cart = []; 
                     this.posDiscount = 0; 
                     this.posCash = 0; 
                     this.posCustomerName = '';
                     this.posPaymentMethod = 'Tunai';
+                    this.showPosCart = false;
+                    this.$nextTick(() => this.refreshIcons());
                 },
                 setQuickCash(val) {
                     if (val === 'exact') {
                         this.posCash = this.cartTotal;
                     } else {
-                        this.posCash = (this.posCash || 0) + Number(val);
+                        this.posCash = (Number(this.posCash) || 0) + Number(val);
                     }
                 },
                 get cartSubtotal() { return this.cart.reduce((s, i) => s + (i.sellPrice * i.qty), 0); },
@@ -3239,7 +3590,12 @@
                             if (Array.isArray(remoteDb.stockLogs)) this.stockLogs = remoteDb.stockLogs;
                             if (Array.isArray(remoteDb.deletedStockLogIds)) this.deletedStockLogIds = remoteDb.deletedStockLogIds;
                             if (remoteDb.settings && typeof remoteDb.settings === 'object') {
-                                this.settings = { ...this.settings, ...remoteDb.settings };
+                                const incomingTime = remoteDb.settings.updatedAt || 0;
+                                const localTime = this.settings.updatedAt || 0;
+                                if (incomingTime >= localTime && this.activeTab !== 'pengaturan' && !this.isSavingSettings) {
+                                    this.settings = { ...this.settings, ...remoteDb.settings };
+                                    this.settingsForm = { ...this.settings };
+                                }
                             }
                             if (Array.isArray(remoteDb.users) && remoteDb.users.length > 0) {
                                 this.users = remoteDb.users;
@@ -3927,14 +4283,87 @@
                 // USER & SETTINGS
                 viewTransactionDetail(t) { this.selectedTrx = t; this.isDetailModalOpen = true; this.refreshIcons(); },
                 printReceipt(t) { this.receiptData = t; setTimeout(() => window.print(), 200); },
-                openUserModal() { this.userForm = {name:'', username:'', password:'', role:'kasir'}; this.isUserModalOpen = true; this.refreshIcons(); },
+                openUserModal() { 
+                    this.userForm = {name:'', username:'', password:'', role:'kasir', showPassword: false}; 
+                    this.isUserModalOpen = true; 
+                    this.refreshIcons(); 
+                },
                 saveUser() { 
                     if (!this.userForm.name || !this.userForm.username) return this.showToast('Data akun tidak lengkap!');
-                    if (this.users.some(u => u.username === this.userForm.username)) return this.showToast('Username sudah ada!');
-                    this.users.push({...this.userForm}); this.syncToGas('users', this.userForm.username, this.userForm); this.saveLocalStorage(); this.isUserModalOpen = false; this.showToast('Akun ditambah');
+                    const cleanUsername = String(this.userForm.username).trim().toLowerCase();
+                    if (this.users.some(u => String(u.username).trim().toLowerCase() === cleanUsername)) return this.showToast('Username sudah ada!');
+                    const cleanPassword = String(this.userForm.password || '').trim() || 'kasir123';
+                    const newUser = {
+                        name: this.userForm.name.trim(),
+                        username: cleanUsername,
+                        password: cleanPassword,
+                        role: this.userForm.role || 'kasir',
+                        profileImage: ''
+                    };
+                    this.users.push(newUser); 
+                    this.syncToGas('users', newUser.username, newUser); 
+                    this.saveLocalStorage(); 
+                    this.isUserModalOpen = false; 
+                    this.showToast('Akun berhasil ditambahkan!');
                     this.refreshIcons();
                 },
-                confirmDeleteUser(u) { this.openConfirm('Hapus Akun', 'Hapus akun ini?', () => { this.users = this.users.filter(x => x.username !== u); this.deleteFromGas('users', u); this.saveLocalStorage(); this.showToast('Akun dihapus.');}); },
+                openResetPasswordModal(user) {
+                    this.resetPasswordForm = {
+                        username: user.username,
+                        name: user.name,
+                        newPassword: '',
+                        confirmPassword: '',
+                        showPassword: false
+                    };
+                    this.isResetPasswordModalOpen = true;
+                    this.$nextTick(() => this.refreshIcons());
+                },
+                saveResetPassword() {
+                    const newPass = String(this.resetPasswordForm.newPassword || '').trim();
+                    const confirmPass = String(this.resetPasswordForm.confirmPassword || '').trim();
+
+                    if (!newPass) {
+                        return this.showToast('Password baru tidak boleh kosong!');
+                    }
+                    if (newPass.length < 3) {
+                        return this.showToast('Password minimal 3 karakter!');
+                    }
+                    if (confirmPass && newPass !== confirmPass) {
+                        return this.showToast('Konfirmasi password tidak cocok!');
+                    }
+
+                    const targetUser = this.users.find(u => u.username === this.resetPasswordForm.username);
+                    if (!targetUser) {
+                        return this.showToast('Akun pengguna tidak ditemukan!');
+                    }
+
+                    targetUser.password = newPass;
+
+                    // Perbarui sesi aktif jika pengguna yang diubah adalah yang sedang login
+                    if (this.currentUser && this.currentUser.username === targetUser.username) {
+                        this.currentUser.password = newPass;
+                        sessionStorage.setItem('pos_session', JSON.stringify({
+                            username: targetUser.username,
+                            name: targetUser.name,
+                            role: targetUser.role
+                        }));
+                    }
+
+                    this.syncToGas('users', targetUser.username, targetUser);
+                    this.saveLocalStorage();
+                    this.isResetPasswordModalOpen = false;
+                    this.playSound('success');
+                    this.showToast(`Password untuk ${targetUser.name} (@${targetUser.username}) berhasil diperbarui!`);
+                    this.refreshIcons();
+                },
+                confirmDeleteUser(u) { 
+                    this.openConfirm('Hapus Akun', `Hapus akun ${u}?`, () => { 
+                        this.users = this.users.filter(x => x.username !== u); 
+                        this.deleteFromGas('users', u); 
+                        this.saveLocalStorage(); 
+                        this.showToast('Akun berhasil dihapus.');
+                    }); 
+                },
                 async handleProductImage(event) {
                     const file = event.target.files && event.target.files[0];
                     if (!file) return;
@@ -3998,10 +4427,11 @@
                 setTheme(key) {
                     const t = this.themeOptions.find(x => x.key === key) || this.themeOptions[0];
                     this.settings.theme = t.key;
+                    if (this.settingsForm) this.settingsForm.theme = t.key;
                     document.documentElement.style.setProperty('--app-primary', t.color);
                     document.documentElement.style.setProperty('--app-primary-dark', t.dark);
                     document.documentElement.style.setProperty('--app-soft', t.soft);
-                    this.saveLocalStorage();
+                    this.saveLocalStorage(true);
                     this.syncToGas('settings', 'store', this.settings);
                     this.showToast('Warna tampilan diubah ke ' + t.name + '.');
                 },
@@ -4013,8 +4443,16 @@
                 },
                 async saveSettings() {
                     this.isSavingSettings = true;
-                    this.saveLocalStorage();
+                    const now = Date.now();
+                    this.settings = {
+                        ...this.settings,
+                        ...this.settingsForm,
+                        updatedAt: now
+                    };
+                    this.settingsForm = { ...this.settings };
+                    this.saveLocalStorage(false);
                     try {
+                        await this.syncToServer('settings', 'store', this.settings);
                         await this.pushFullStateToServer();
                     } catch (_) {}
                     this.syncToGas('settings', 'store', this.settings);
@@ -4043,7 +4481,12 @@
                         cash: 50000,
                         change: 0
                     };
+                    const prev = { ...this.settings };
+                    this.settings = { ...this.settings, ...this.settingsForm };
                     this.printReceipt(sampleTrx);
+                    setTimeout(() => {
+                        this.settings = prev;
+                    }, 1000);
                 }
             }
         }

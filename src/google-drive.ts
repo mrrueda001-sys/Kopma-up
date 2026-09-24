@@ -62,21 +62,152 @@ onAuthStateChanged(auth, (user) => {
   notifyListeners();
 });
 
+const loadGsiScript = (): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    if ((window as any).google?.accounts?.oauth2) {
+      resolve();
+      return;
+    }
+    const existing = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+    if (existing) {
+      existing.addEventListener('load', () => resolve());
+      existing.addEventListener('error', () => reject(new Error('Gagal memuat Google Identity Services')));
+      if ((window as any).google?.accounts?.oauth2) {
+        resolve();
+      }
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Gagal memuat Google Identity Services'));
+    document.head.appendChild(script);
+  });
+};
+
+const signInWithGis = async (): Promise<{ user: any; accessToken: string }> => {
+  await loadGsiScript();
+  const google = (window as any).google;
+  if (!google?.accounts?.oauth2) {
+    throw new Error('Google Identity Services belum dimuat.');
+  }
+
+  const clientId = (firebaseConfig as any).oAuthClientId;
+  if (!clientId) {
+    throw new Error('OAuth Client ID belum dikonfigurasi di firebase-applet-config.json');
+  }
+
+  return new Promise((resolve, reject) => {
+    try {
+      const client = google.accounts.oauth2.initTokenClient({
+        client_id: clientId,
+        scope: [
+          'https://www.googleapis.com/auth/drive.file',
+          'https://www.googleapis.com/auth/userinfo.profile',
+          'https://www.googleapis.com/auth/userinfo.email'
+        ].join(' '),
+        callback: async (tokenResponse: any) => {
+          if (tokenResponse.error) {
+            reject(new Error(tokenResponse.error_description || tokenResponse.error));
+            return;
+          }
+          const accessToken = tokenResponse.access_token;
+          if (!accessToken) {
+            reject(new Error('Tidak ada token akses yang diterima dari Google.'));
+            return;
+          }
+
+          let user = {
+            uid: 'gdrive-user',
+            displayName: 'Pengguna Google Drive',
+            email: '',
+            photoURL: ''
+          };
+
+          try {
+            const infoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+              headers: { Authorization: `Bearer ${accessToken}` }
+            });
+            if (infoRes.ok) {
+              const data = await infoRes.json();
+              user = {
+                uid: data.sub || 'gdrive-user',
+                displayName: data.name || data.email || 'Pengguna Google Drive',
+                email: data.email || '',
+                photoURL: data.picture || ''
+              };
+            }
+          } catch (_) {
+            try {
+              const aboutRes = await fetch('https://www.googleapis.com/drive/v3/about?fields=user', {
+                headers: { Authorization: `Bearer ${accessToken}` }
+              });
+              if (aboutRes.ok) {
+                const data = await aboutRes.json();
+                if (data.user) {
+                  user = {
+                    uid: data.user.permissionId || 'gdrive-user',
+                    displayName: data.user.displayName || data.user.emailAddress,
+                    email: data.user.emailAddress || '',
+                    photoURL: data.user.photoLink || ''
+                  };
+                }
+              }
+            } catch (_) {}
+          }
+
+          resolve({ user, accessToken });
+        },
+        error_callback: (err: any) => {
+          reject(new Error(err?.message || 'Login Google dibatalkan atau popup ditutup.'));
+        }
+      });
+
+      client.requestAccessToken({ prompt: 'select_account' });
+    } catch (err: any) {
+      reject(err);
+    }
+  });
+};
+
 export const signInWithGoogleDrive = async (): Promise<{ user: any; accessToken: string }> => {
   try {
     isSigningIn = true;
-    const result = await signInWithPopup(auth, provider);
-    const credential = GoogleAuthProvider.credentialFromResult(result);
-    if (!credential?.accessToken) {
-      throw new Error('Gagal mendapatkan token akses dari Google.');
+    let authResult: { user: any; accessToken: string };
+
+    // Coba gunakan Google Identity Services (GIS) terlebih dahulu
+    // GIS menggunakan OAuth Client ID resmi dan bebas dari masalah auth/unauthorized-domain Firebase
+    try {
+      authResult = await signInWithGis();
+    } catch (gisError: any) {
+      console.warn('GIS sign-in attempt failed, falling back to Firebase Auth:', gisError);
+      try {
+        const result = await signInWithPopup(auth, provider);
+        const credential = GoogleAuthProvider.credentialFromResult(result);
+        if (!credential?.accessToken) {
+          throw new Error('Gagal mendapatkan token akses dari Google.');
+        }
+        authResult = {
+          accessToken: credential.accessToken,
+          user: {
+            uid: result.user.uid,
+            displayName: result.user.displayName,
+            email: result.user.email,
+            photoURL: result.user.photoURL
+          }
+        };
+      } catch (fbError: any) {
+        if (fbError?.code === 'auth/unauthorized-domain') {
+          throw new Error(gisError?.message || 'Domain belum diotorisasi di Firebase Console. Pastikan popup Google diizinkan untuk menghubungkan akun.');
+        }
+        throw fbError;
+      }
     }
-    cachedAccessToken = credential.accessToken;
-    cachedUser = {
-      uid: result.user.uid,
-      displayName: result.user.displayName,
-      email: result.user.email,
-      photoURL: result.user.photoURL
-    };
+
+    cachedAccessToken = authResult.accessToken;
+    cachedUser = authResult.user;
 
     localStorage.setItem(STORAGE_KEY_TOKEN, cachedAccessToken);
     localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(cachedUser));

@@ -1,17 +1,6 @@
 {
   "products": [
     {
-      "id": "P999",
-      "name": "Chiki Balls Keju",
-      "barcode": "8992775999999",
-      "category": "Makanan & Snack",
-      "buyPrice": 4000,
-      "sellPrice": 5500,
-      "stock": 30,
-      "unit": "Bungkus",
-      "image": "/uploads/P999_1790214940354_15ad8d9a.png"
-    },
-    {
       "id": "P001",
       "name": "Air Mineral Kopma 600ml",
       "barcode": "8992775211112",
@@ -68,22 +57,10 @@
     }
   ],
   "categories": [
-    {
-      "id": 1,
-      "name": "Minuman"
-    },
-    {
-      "id": 2,
-      "name": "Makanan & Snack"
-    },
-    {
-      "id": 3,
-      "name": "Alat Tulis & Kampus"
-    },
-    {
-      "id": 4,
-      "name": "Sembako & Kebutuhan"
-    }
+    { "id": 1, "name": "Minuman" },
+    { "id": 2, "name": "Makanan & Snack" },
+    { "id": 3, "name": "Alat Tulis & Kampus" },
+    { "id": 4, "name": "Sembako & Kebutuhan" }
   ],
   "transactions": [],
   "dailyArchives": [],
@@ -95,11 +72,10 @@
     "address": "Gedung Koperasi Mahasiswa",
     "phone": "081234567890",
     "receiptNote": "Terima kasih telah berbelanja di KOPMA.",
-    "theme": "blue",
+    "theme": "emerald",
     "soundEnabled": true,
     "bankAccount": "BCA 1234567890 a/n KOPMA",
-    "lowStockThreshold": 5,
-    "autoPrintReceipt": true
+    "updatedAt": 1790267500000
   },
   "users": [
     {
@@ -117,5 +93,5 @@
       "profileImage": ""
     }
   ],
-  "updatedAt": 1790215147765
+  "updatedAt": 1790267500000
 }
