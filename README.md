@@ -49,5 +49,18 @@ Sistem Kasir Online dan Manajemen Toko terintegrasi dengan Google Sheets (Google
 9. **Antarmuka Modern (Bottom Dock & Animasi Halus)**:
    - **Floating Bottom Navigation Dock**: Menu navigasi modern di bagian bawah dengan efek glassmorphism (backdrop blur), shadow halus, serta micro-interaction (*bounce & active scaling*).
    - **Badge Notifikasi Realtime**: Indikator jumlah barang dalam keranjang pada tab Kasir dan indikator peringatan stok menipis pada tab Stok.
-   - **Transisi Antar Modul**: Animasi perpindahan halaman yang halus (*gentle fade & slide-up*).
+   - **Transisi Antar Modul (Mobile-Grade Fade-Slide)**: Efek perpindahan halaman ultra-halus dengan kurva fisika `cubic-bezier(0.16, 1, 0.3, 1)`, akselerasi GPU 3D transform (`translate3d`), pencegahan reflow, serta auto scroll-to-top untuk pengalaman bernavigasi seperti aplikasi mobile iOS / Android kelas premium.
+   - **Dock Spring Haptic Interaction**: Animasi micro-interaction pegas dinamis (*spring feedback*) pada item tab dock navigasi yang aktif.
    - **Header Ringkas & Elegan**: Menampilkan status sinkronisasi Google Sheets, jam waktu nyata, profil kasir/admin, dan tombol logout yang rapi.
+10. **Otomatisasi Kompresi Foto**:
+    - **Kompresi Cerdas Bertingkat**: Otomatis mengompresi foto produk dan foto profil yang diunggah pengguna ke format ultra-ringan (<50 KB untuk produk, <35 KB untuk avatar).
+    - **Penghematan Ruang & Bandwidth**: Menjaga ketajaman visual dengan algoritma penyesuaian dimensi dan kualitas adaptif, menghemat kapasitas hingga 90-98%.
+    - **Indikator & Visual Feedback**: Menampilkan animasi pemrosesan saat kompresi berlangsung serta kartu informasi persentase penghematan ukuran file (`Ukuran Awal → Ukuran Terkompresi`).
+    - **Dukungan Drag & Drop**: Pengguna dapat langsung menyeret file gambar atau memilih dari galeri perangkat dengan mudah.
+11. **Laporan CSV / Excel Profesional & Rapi**:
+    - **Struktur Standar Akuntansi & Pelaporan**: Dilengkapi kartu identitas laporan (Nama Toko, Alamat, Kontak, Periode, Waktu Cetak, Operator Kasir) dan Ringkasan Eksekutif Keuangan (Total Transaksi, Qty Item, Omzet, Diskon, Estimasi Modal HPP, Laba Bersih, Margin Keuntungan, dan Rata-rata Nilai Transaksi / AOV).
+    - **Dua Pilihan Format Laporan**:
+      - **Rekap Transaksi Lengkap (Per Nota)**: Menampilkan data per nota lengkap dengan jam, rincian barang, diskon, modal HPP, laba, uang diterima, kembalian, dan baris **Grand Total Keseluruhan** di bagian bawah.
+      - **Rincian Penjualan Per Item Produk (Itemized)**: Menampilkan rincian per produk terjual (Kategori, Nama Produk, Qty, Harga Beli/HPP, Harga Jual, Omzet, Total HPP, dan Laba Bersih), ideal untuk analisis produk terlaris, audit stok, dan pivot table di Excel.
+    - **Kompatibilitas Penuh Microsoft Excel & Google Sheets**: Menggunakan header UTF-8 BOM (`\uFEFF`) dan angka numerik murni tanpa simbol teks sehingga rumus perhitungan (`=SUM`, `=AVERAGE`, dll.) dapat langsung dieksekusi tanpa error.
+    - **Pilihan Pemisah Kolom (Delimiter)**: Tersedia pilihan pemisah **Koma (,)** untuk standar universal & Google Sheets, serta **Titik Koma (;)** khusus Microsoft Excel Windows dengan pengaturan regional Indonesia.

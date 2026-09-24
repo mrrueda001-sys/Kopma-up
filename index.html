@@ -26,22 +26,54 @@
         /* Hide scrollbar for IE, Edge and Firefox */
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        @keyframes dockBounce {
-            0% { transform: scale(1); }
-            40% { transform: scale(0.92); }
-            70% { transform: scale(1.06); }
-            100% { transform: scale(1.04); }
+        /* Mobile-grade ultra-smooth tab transitions & animations */
+        .tab-fade-slide-enter {
+            transition: opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+                        transform 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            will-change: opacity, transform;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            transform: translate3d(0, 0, 0);
+        }
+        .tab-fade-slide-start {
+            opacity: 0 !important;
+            transform: translate3d(0, 10px, 0) !important;
+        }
+        .tab-fade-slide-end {
+            opacity: 1 !important;
+            transform: translate3d(0, 0, 0) !important;
+        }
+
+        @keyframes dockSpring {
+            0% { transform: scale(0.92); }
+            50% { transform: scale(1.05); }
+            75% { transform: scale(0.98); }
+            100% { transform: scale(1); }
         }
         .active-dock-item {
-            animation: dockBounce 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            animation: dockSpring 0.32s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
 
         @keyframes gentleFadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
+            from { opacity: 0; transform: translate3d(0, 8px, 0); }
+            to { opacity: 1; transform: translate3d(0, 0, 0); }
         }
         .animate-gentle-fade {
-            animation: gentleFadeIn 0.3s ease-out forwards;
+            animation: gentleFadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .tab-fade-slide-enter,
+            .active-dock-item,
+            .animate-gentle-fade {
+                transition: none !important;
+                animation: none !important;
+                transform: none !important;
+            }
+            .tab-fade-slide-start {
+                opacity: 1 !important;
+                transform: none !important;
+            }
         }
 
         @media print {
@@ -64,9 +96,10 @@
                     <template x-if="!(loginPreviewUser && loginPreviewUser.profileImage)">
                         <div class="w-20 h-20 app-primary text-white rounded-full flex items-center justify-center font-bold text-2xl shadow-lg shadow-black/10"><i data-lucide="user" class="w-9 h-9"></i></div>
                     </template>
-                    <label x-show="loginPreviewUser && loginPreviewUser.role === 'admin'" class="absolute -right-1 -bottom-1 w-8 h-8 rounded-full bg-white border border-slate-200 shadow flex items-center justify-center cursor-pointer text-slate-600 hover:app-text" title="Edit foto profil admin">
-                        <i data-lucide="camera" class="w-4 h-4"></i>
-                        <input type="file" accept="image/*" class="hidden" @change="handleProfileImage($event, 'login')">
+                    <label x-show="loginPreviewUser && loginPreviewUser.role === 'admin'" class="absolute -right-1 -bottom-1 w-8 h-8 rounded-full bg-white border border-slate-200 shadow flex items-center justify-center cursor-pointer text-slate-600 hover:app-text transition" title="Ganti foto profil (otomatis dikompres)">
+                        <i data-lucide="camera" class="w-4 h-4" x-show="!isCompressingProfile"></i>
+                        <div x-show="isCompressingProfile" class="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+                        <input type="file" accept="image/*" class="hidden" :disabled="isCompressingProfile" @change="handleProfileImage($event, 'login')">
                     </label>
                 </div>
                 <h1 class="text-2xl font-bold text-slate-900" x-text="settings.storeName">Tokoku POS</h1>
@@ -167,9 +200,9 @@
 
             <!-- 1. DASHBOARD MODULE -->
             <div x-show="activeTab === 'dashboard'" 
-                 x-transition:enter="transition-all ease-out duration-300 transform" 
-                 x-transition:enter-start="opacity-0 translate-y-3 scale-[0.99]" 
-                 x-transition:enter-end="opacity-100 translate-y-0 scale-100" 
+                 x-transition:enter="tab-fade-slide-enter" 
+                 x-transition:enter-start="tab-fade-slide-start" 
+                 x-transition:enter-end="tab-fade-slide-end" 
                  class="p-4 sm:p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full pb-28 md:pb-32" x-cloak>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
@@ -232,9 +265,9 @@
 
             <!-- 2. KASIR / POS MODULE -->
             <div x-show="activeTab === 'kasir'" 
-                 x-transition:enter="transition-all ease-out duration-300 transform" 
-                 x-transition:enter-start="opacity-0 translate-y-3 scale-[0.99]" 
-                 x-transition:enter-end="opacity-100 translate-y-0 scale-100" 
+                 x-transition:enter="tab-fade-slide-enter" 
+                 x-transition:enter-start="tab-fade-slide-start" 
+                 x-transition:enter-end="tab-fade-slide-end" 
                  class="p-4 sm:p-6 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 h-full pb-28 md:pb-32" x-cloak>
                 <div class="lg:col-span-7 flex flex-col space-y-4">
                     <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
@@ -362,9 +395,9 @@
 
             <!-- 3. PRODUK MODULE -->
             <div x-show="activeTab === 'produk'" 
-                 x-transition:enter="transition-all ease-out duration-300 transform" 
-                 x-transition:enter-start="opacity-0 translate-y-3 scale-[0.99]" 
-                 x-transition:enter-end="opacity-100 translate-y-0 scale-100" 
+                 x-transition:enter="tab-fade-slide-enter" 
+                 x-transition:enter-start="tab-fade-slide-start" 
+                 x-transition:enter-end="tab-fade-slide-end" 
                  class="p-4 sm:p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full pb-28 md:pb-32" x-cloak>
                 <div class="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4">
                     <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
@@ -424,9 +457,9 @@
 
             <!-- 4. KATEGORI MODULE -->
             <div x-show="activeTab === 'kategori'" 
-                 x-transition:enter="transition-all ease-out duration-300 transform" 
-                 x-transition:enter-start="opacity-0 translate-y-3 scale-[0.99]" 
-                 x-transition:enter-end="opacity-100 translate-y-0 scale-100" 
+                 x-transition:enter="tab-fade-slide-enter" 
+                 x-transition:enter-start="tab-fade-slide-start" 
+                 x-transition:enter-end="tab-fade-slide-end" 
                  class="p-4 sm:p-6 md:p-8 space-y-6 max-w-4xl mx-auto w-full pb-28 md:pb-32" x-cloak>
                 <div class="flex justify-between items-center">
                     <h3 class="font-bold text-slate-800 text-lg">Kelola Kategori Produk</h3>
@@ -452,9 +485,9 @@
 
             <!-- 5. RIWAYAT TRANSAKSI MODULE -->
             <div x-show="activeTab === 'riwayat'" 
-                 x-transition:enter="transition-all ease-out duration-300 transform" 
-                 x-transition:enter-start="opacity-0 translate-y-3 scale-[0.99]" 
-                 x-transition:enter-end="opacity-100 translate-y-0 scale-100" 
+                 x-transition:enter="tab-fade-slide-enter" 
+                 x-transition:enter-start="tab-fade-slide-start" 
+                 x-transition:enter-end="tab-fade-slide-end" 
                  class="p-4 sm:p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full pb-28 md:pb-32" x-cloak>
                 
                 <!-- Header with Title & Sub-tabs -->
@@ -489,7 +522,11 @@
                 </div>
 
                 <!-- VIEW 1: TRANSAKSI AKTIF (HARI INI) -->
-                <div x-show="historySubTab === 'active'" class="space-y-4">
+                <div x-show="historySubTab === 'active'" 
+                     x-transition:enter="tab-fade-slide-enter" 
+                     x-transition:enter-start="tab-fade-slide-start" 
+                     x-transition:enter-end="tab-fade-slide-end" 
+                     class="space-y-4">
                     <!-- Auto-reset Info Alert -->
                     <div class="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
                         <div class="flex items-center space-x-3 text-emerald-800">
@@ -518,7 +555,7 @@
                             <input type="text" x-model="historySearch" placeholder="Cari no. transaksi atau pelanggan..." class="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
                         </div>
                         <div class="flex items-center space-x-2 w-full sm:w-auto">
-                            <button @click="exportCSVReport()" class="flex-1 sm:flex-initial px-4 py-2.5 app-soft hover:app-soft app-text font-semibold rounded-xl transition flex items-center justify-center space-x-2 text-xs border border-emerald-200 shadow-2xs">
+                            <button @click="openExportModal('today')" class="flex-1 sm:flex-initial px-4 py-2.5 app-soft hover:app-soft app-text font-semibold rounded-xl transition flex items-center justify-center space-x-2 text-xs border border-emerald-200 shadow-2xs">
                                 <i data-lucide="download" class="w-4 h-4"></i>
                                 <span>Download CSV Hari Ini</span>
                             </button>
@@ -585,7 +622,11 @@
                 </div>
 
                 <!-- VIEW 2: ARSIP REKAP PER HARI -->
-                <div x-show="historySubTab === 'archives'" class="space-y-4">
+                <div x-show="historySubTab === 'archives'" 
+                     x-transition:enter="tab-fade-slide-enter" 
+                     x-transition:enter-start="tab-fade-slide-start" 
+                     x-transition:enter-end="tab-fade-slide-end" 
+                     class="space-y-4">
                     
                     <!-- Search & Quick Summary Stats -->
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -712,9 +753,9 @@
 
             <!-- 6. LAPORAN MODULE -->
             <div x-show="activeTab === 'laporan'" 
-                 x-transition:enter="transition-all ease-out duration-300 transform" 
-                 x-transition:enter-start="opacity-0 translate-y-3 scale-[0.99]" 
-                 x-transition:enter-end="opacity-100 translate-y-0 scale-100" 
+                 x-transition:enter="tab-fade-slide-enter" 
+                 x-transition:enter-start="tab-fade-slide-start" 
+                 x-transition:enter-end="tab-fade-slide-end" 
                  class="p-4 sm:p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full pb-28 md:pb-32" x-cloak>
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
@@ -729,7 +770,7 @@
                             <button @click="reportFilter = 'week'" :class="reportFilter === 'week' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'" class="px-3 py-1.5 rounded-lg transition">7 Hari</button>
                             <button @click="reportFilter = 'month'" :class="reportFilter === 'month' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'" class="px-3 py-1.5 rounded-lg transition">30 Hari</button>
                         </div>
-                        <button @click="exportCSVReport()" class="px-3.5 py-2 app-soft hover:app-soft app-text font-semibold rounded-xl transition flex items-center space-x-1.5 text-xs border border-emerald-200"><i data-lucide="download" class="w-4 h-4"></i><span>Export CSV</span></button>
+                        <button @click="openExportModal()" class="px-3.5 py-2 app-soft hover:app-soft app-text font-semibold rounded-xl transition flex items-center space-x-1.5 text-xs border border-emerald-200 shadow-2xs"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i><span>Export CSV / Excel</span></button>
                         <button @click="confirmResetReports()" class="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold rounded-xl transition flex items-center space-x-1.5 text-xs border border-rose-200"><i data-lucide="rotate-ccw" class="w-4 h-4"></i><span>Reset</span></button>
                     </div>
                 </div>
@@ -777,9 +818,9 @@
 
             <!-- 7. STOK MODULE -->
             <div x-show="activeTab === 'stok'" 
-                 x-transition:enter="transition-all ease-out duration-300 transform" 
-                 x-transition:enter-start="opacity-0 translate-y-3 scale-[0.99]" 
-                 x-transition:enter-end="opacity-100 translate-y-0 scale-100" 
+                 x-transition:enter="tab-fade-slide-enter" 
+                 x-transition:enter-start="tab-fade-slide-start" 
+                 x-transition:enter-end="tab-fade-slide-end" 
                  class="p-4 sm:p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full pb-28 md:pb-32" x-cloak>
                 <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                     <h3 class="font-bold text-slate-800 text-lg">Manajemen & Riwayat Stok Barang</h3>
@@ -810,9 +851,9 @@
 
             <!-- 8. PENGATURAN MODULE -->
             <div x-show="activeTab === 'pengaturan'" 
-                 x-transition:enter="transition-all ease-out duration-300 transform" 
-                 x-transition:enter-start="opacity-0 translate-y-3 scale-[0.99]" 
-                 x-transition:enter-end="opacity-100 translate-y-0 scale-100" 
+                 x-transition:enter="tab-fade-slide-enter" 
+                 x-transition:enter-start="tab-fade-slide-start" 
+                 x-transition:enter-end="tab-fade-slide-end" 
                  class="p-4 sm:p-6 md:p-8 space-y-6 max-w-4xl mx-auto w-full pb-28 md:pb-32" x-cloak>
                 <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
                     <h3 class="font-bold text-slate-800 text-lg border-b border-slate-100 pb-4">Pengaturan Toko & Struk</h3>
@@ -887,10 +928,10 @@
 
                         <div class="flex items-center justify-between p-3">
                             <div>
-                                <h4 class="font-semibold text-slate-800 text-sm">Unduh Rekap Laporan Penjualan (CSV)</h4>
-                                <p class="text-xs text-slate-400">Buka langsung di Microsoft Excel atau Google Sheets.</p>
+                                <h4 class="font-semibold text-slate-800 text-sm">Unduh Rekap Laporan Penjualan (CSV / Excel)</h4>
+                                <p class="text-xs text-slate-400">Format rapi berstandar akuntansi, siap dibuka di Microsoft Excel atau Google Sheets.</p>
                             </div>
-                            <button @click="exportCSVReport()" class="px-4 py-2 app-primary app-primary-hover text-white font-semibold rounded-xl text-xs transition flex items-center space-x-2"><i data-lucide="download" class="w-4 h-4"></i><span>Download CSV</span></button>
+                            <button @click="openExportModal('all')" class="px-4 py-2 app-primary app-primary-hover text-white font-semibold rounded-xl text-xs transition flex items-center space-x-2 shadow-sm"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i><span>Download CSV</span></button>
                         </div>
                     </div>
 
@@ -940,49 +981,137 @@
     <!-- Profile Photo Modal -->
     <div x-show="isProfileModalOpen" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4" x-cloak>
         <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl space-y-5">
-            <div class="flex items-center justify-between"><h3 class="font-bold text-slate-800 text-lg">Foto Profil</h3><button @click="isProfileModalOpen=false" class="p-2 bg-slate-100 rounded-lg"><i data-lucide="x" class="w-4 h-4"></i></button></div>
+            <div class="flex items-center justify-between"><h3 class="font-bold text-slate-800 text-lg">Foto Profil</h3><button @click="isProfileModalOpen=false" class="p-2 bg-slate-100 rounded-lg hover:bg-slate-200 transition"><i data-lucide="x" class="w-4 h-4"></i></button></div>
             <div class="flex flex-col items-center gap-4">
-                <template x-if="currentUser.profileImage"><img :src="currentUser.profileImage" class="w-28 h-28 rounded-full object-cover border-4 border-slate-100 shadow"></template>
-                <template x-if="!currentUser.profileImage"><div class="w-28 h-28 rounded-full app-soft app-text flex items-center justify-center text-4xl font-bold" x-text="currentUser.name.charAt(0)"></div></template>
-                <label x-show="currentUser.role === 'admin'" class="px-4 py-2.5 app-primary app-primary-hover text-white rounded-xl text-sm font-semibold cursor-pointer flex items-center gap-2"><i data-lucide="camera" class="w-4 h-4"></i><span>Pilih Foto</span><input type="file" accept="image/*" class="hidden" @change="handleProfileImage($event, 'dashboard')"></label>
-                <button x-show="currentUser.role === 'admin' && currentUser.profileImage" @click="removeProfileImage()" class="text-xs font-semibold text-rose-600 hover:underline">Hapus foto profil</button>
-                <p class="text-xs text-slate-400 text-center" x-text="currentUser.role === 'admin' ? 'Foto profil admin dapat diubah dan akan tampil di halaman login dan dashboard.' : 'Foto profil kasir hanya dapat dilihat dan tidak dapat diubah.'"></p>
+                <div class="relative">
+                    <template x-if="currentUser.profileImage"><img :src="currentUser.profileImage" class="w-28 h-28 rounded-full object-cover border-4 border-slate-100 shadow-md"></template>
+                    <template x-if="!currentUser.profileImage"><div class="w-28 h-28 rounded-full app-soft app-text flex items-center justify-center text-4xl font-bold shadow-inner" x-text="currentUser.name.charAt(0)"></div></template>
+                    <!-- Compressing spinner overlay -->
+                    <div x-show="isCompressingProfile" class="absolute inset-0 bg-slate-900/70 rounded-full flex flex-col items-center justify-center text-white p-2 animate-fadeIn" x-cloak>
+                        <div class="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span class="text-[10px] font-semibold mt-1">Mengompres...</span>
+                    </div>
+                </div>
+
+                <div class="flex flex-col items-center gap-2 w-full">
+                    <label x-show="currentUser.role === 'admin'" class="w-full py-2.5 app-primary app-primary-hover text-white rounded-xl text-sm font-semibold cursor-pointer flex items-center justify-center gap-2 shadow-sm transition">
+                        <i data-lucide="camera" class="w-4 h-4" x-show="!isCompressingProfile"></i>
+                        <span x-text="isCompressingProfile ? 'Sedang Memproses...' : 'Pilih Foto Baru'"></span>
+                        <input type="file" accept="image/*" class="hidden" :disabled="isCompressingProfile" @change="handleProfileImage($event, 'dashboard')">
+                    </label>
+                    <div class="flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
+                        <i data-lucide="zap" class="w-3.5 h-3.5 text-emerald-500"></i>
+                        <span>Otomatis dikompres &lt; 35 KB (Ultra Ringan)</span>
+                    </div>
+                    <button x-show="currentUser.role === 'admin' && currentUser.profileImage" @click="removeProfileImage()" class="text-xs font-semibold text-rose-600 hover:underline pt-1">Hapus foto profil</button>
+                </div>
+                <p class="text-xs text-slate-400 text-center" x-text="currentUser.role === 'admin' ? 'Foto profil admin otomatis dikompres agar loading instan dan hemat penyimpanan.' : 'Foto profil kasir hanya dapat dilihat dan tidak dapat diubah.'"></p>
             </div>
         </div>
     </div>
 
     <!-- Modals -->
     <div x-show="isProductModalOpen" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" x-cloak>
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
-            <h3 class="font-bold text-slate-800 text-lg" x-text="isEditMode ? 'Edit Produk' : 'Tambah Produk Baru'"></h3>
-            <div class="space-y-3">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl space-y-4 max-h-[92vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 text-lg" x-text="isEditMode ? 'Edit Produk' : 'Tambah Produk Baru'"></h3>
+                <button @click="isProductModalOpen = false" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            
+            <div class="space-y-3.5">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div><label class="block text-xs font-semibold text-slate-600 mb-1">Nama Produk</label><input type="text" x-model="productForm.name" placeholder="Nama barang" class="w-full border rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"></div>
-                    <div><label class="block text-xs font-semibold text-slate-600 mb-1">Barcode / SKU (Opsional)</label><input type="text" x-model="productForm.barcode" placeholder="Ketik / scan barcode" class="w-full border rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"></div>
+                    <div><label class="block text-xs font-semibold text-slate-600 mb-1">Nama Produk *</label><input type="text" x-model="productForm.name" placeholder="Nama barang" class="w-full border rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"></div>
+                    <div><label class="block text-xs font-semibold text-slate-600 mb-1">Barcode / SKU (Opsional)</label><input type="text" x-model="productForm.barcode" placeholder="Ketik / scan barcode" class="w-full border rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"></div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
-                    <div><label class="block text-xs font-semibold text-slate-600 mb-1">Kategori</label><select x-model="productForm.category" class="w-full border rounded-xl px-3 py-2 text-sm"><option value="">Pilih Kategori</option><template x-for="cat in categories" :key="cat.id"><option :value="cat.name" x-text="cat.name"></option></template></select></div>
-                    <div><label class="block text-xs font-semibold text-slate-600 mb-1">Satuan</label><input type="text" x-model="productForm.unit" placeholder="Pcs/Kg" class="w-full border rounded-xl px-3 py-2 text-sm"></div>
+                    <div><label class="block text-xs font-semibold text-slate-600 mb-1">Kategori *</label><select x-model="productForm.category" class="w-full border rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"><option value="">Pilih Kategori</option><template x-for="cat in categories" :key="cat.id"><option :value="cat.name" x-text="cat.name"></option></template></select></div>
+                    <div><label class="block text-xs font-semibold text-slate-600 mb-1">Satuan</label><input type="text" x-model="productForm.unit" placeholder="Pcs/Kg/Pack" class="w-full border rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"></div>
                 </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div><label class="block text-xs font-semibold text-slate-600 mb-1">Harga Beli</label><input type="number" x-model.number="productForm.buyPrice" class="w-full border rounded-xl px-3 py-2 text-sm"></div>
-                    <div><label class="block text-xs font-semibold text-slate-600 mb-1">Harga Jual</label><input type="number" x-model.number="productForm.sellPrice" class="w-full border rounded-xl px-3 py-2 text-sm"></div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div><label class="block text-xs font-semibold text-slate-600 mb-1">Harga Beli</label><input type="number" x-model.number="productForm.buyPrice" class="w-full border rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"></div>
+                    <div><label class="block text-xs font-semibold text-slate-600 mb-1">Harga Jual</label><input type="number" x-model.number="productForm.sellPrice" class="w-full border rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"></div>
+                    <div><label class="block text-xs font-semibold text-slate-600 mb-1">Stok Awal</label><input type="number" x-model.number="productForm.stock" class="w-full border rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"></div>
                 </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Gambar Produk</label>
-                            <input type="file" accept="image/*" @change="handleProductImage($event)" class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
-                            <div x-show="productForm.image" class="mt-2 flex items-center gap-3">
-                                <img :src="productForm.image" class="w-16 h-16 rounded-lg object-cover border border-slate-200">
-                                <button type="button" @click="productForm.image=''" class="text-xs text-rose-600 font-semibold">Hapus gambar</button>
+
+                <!-- Foto Produk dengan Kompresi Otomatis -->
+                <div class="space-y-2 pt-1 border-t border-slate-100">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-xs font-semibold text-slate-700">Foto Produk</label>
+                        <span class="text-[11px] text-emerald-600 font-medium flex items-center gap-1">
+                            <i data-lucide="zap" class="w-3.5 h-3.5 text-emerald-500"></i>
+                            <span>Otomatis Dikompres</span>
+                        </span>
+                    </div>
+
+                    <!-- Dropzone Container -->
+                    <div @dragover.prevent
+                         @drop.prevent="handleProductImageDrop($event)"
+                         class="relative border-2 border-dashed rounded-2xl p-3 transition-all duration-200"
+                         :class="isCompressingImage ? 'border-emerald-400 bg-emerald-50/50' : (productForm.image ? 'border-slate-200 bg-slate-50/60' : 'border-slate-300 hover:border-emerald-400 hover:bg-slate-50')">
+                        
+                        <!-- Compressing Loading State -->
+                        <div x-show="isCompressingImage" class="py-5 flex flex-col items-center justify-center space-y-2" x-cloak>
+                            <div class="w-8 h-8 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+                            <p class="text-xs font-bold text-emerald-800">Mengompres foto secara otomatis...</p>
+                            <p class="text-[11px] text-slate-500">Menyesuaikan dimensi dan mengoptimalkan kualitas gambar</p>
+                        </div>
+
+                        <!-- Preview Saat Foto Ada -->
+                        <div x-show="!isCompressingImage && productForm.image" class="flex flex-col sm:flex-row items-center gap-3.5">
+                            <div class="relative group shrink-0">
+                                <img :src="productForm.image" class="w-20 h-20 rounded-xl object-cover border border-slate-200 shadow-sm">
+                            </div>
+                            <div class="flex-1 min-w-0 space-y-2 w-full text-left">
+                                <!-- Compression Result Badge -->
+                                <template x-if="imageCompressionInfo">
+                                    <div class="bg-emerald-50 border border-emerald-200/90 rounded-xl p-2.5 text-xs">
+                                        <div class="flex items-center justify-between font-bold text-emerald-800 text-[11px]">
+                                            <span class="flex items-center gap-1.5"><i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-600"></i> Terkompres Otomatis</span>
+                                            <span class="bg-emerald-200/80 text-emerald-900 px-2 py-0.5 rounded-full text-[10px] font-bold" x-text="'Hemat ' + imageCompressionInfo.ratio"></span>
+                                        </div>
+                                        <div class="flex items-center gap-2 text-[11px] text-slate-600 mt-1">
+                                            <span class="font-medium" x-text="imageCompressionInfo.originalSize + ' → ' + imageCompressionInfo.compressedSize"></span>
+                                            <span class="text-slate-400">•</span>
+                                            <span class="text-slate-500" x-text="imageCompressionInfo.width + ' × ' + imageCompressionInfo.height + ' px'"></span>
+                                        </div>
+                                    </div>
+                                </template>
+                                <template x-if="!imageCompressionInfo && productForm.image">
+                                    <div class="text-xs text-slate-500">
+                                        Foto tersimpan dalam format terkompresi ringan (&lt;50 KB).
+                                    </div>
+                                </template>
+
+                                <div class="flex items-center gap-2">
+                                    <label class="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg border border-slate-200 cursor-pointer transition flex items-center gap-1.5 shadow-2xs">
+                                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                                        <span>Ganti Foto</span>
+                                        <input type="file" accept="image/*" class="hidden" @change="handleProductImage($event)">
+                                    </label>
+                                    <button type="button" @click="productForm.image=''; imageCompressionInfo=null;" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-semibold rounded-lg border border-rose-200 transition flex items-center gap-1.5 shadow-2xs">
+                                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                        <span>Hapus</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <div><label class="block text-xs font-semibold text-slate-600 mb-1">Stok Awal</label><input type="number" x-model.number="productForm.stock" class="w-full border rounded-xl px-3 py-2 text-sm"></div>
+
+                        <!-- Empty State Saat Belum Ada Foto -->
+                        <label x-show="!isCompressingImage && !productForm.image" class="block cursor-pointer py-4 text-center">
+                            <div class="w-10 h-10 mx-auto rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2 transition transform group-hover:scale-110 shadow-2xs">
+                                <i data-lucide="image-plus" class="w-5 h-5"></i>
+                            </div>
+                            <p class="text-xs font-semibold text-slate-800">Klik untuk Pilih Foto atau Seret ke Sini</p>
+                            <p class="text-[11px] text-slate-400 mt-1">Mendukung JPG, PNG, WEBP • Otomatis dikompres ringan (&lt;50 KB)</p>
+                            <input type="file" accept="image/*" class="hidden" @change="handleProductImage($event)">
+                        </label>
+                    </div>
                 </div>
             </div>
+
             <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100">
-                <button @click="isProductModalOpen = false" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-sm font-semibold">Batal</button>
-                <button @click="saveProduct()" class="px-4 py-2 app-primary text-white rounded-xl text-sm font-semibold">Simpan</button>
+                <button @click="isProductModalOpen = false" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold transition">Batal</button>
+                <button @click="saveProduct()" :disabled="isCompressingImage" class="px-5 py-2.5 app-primary app-primary-hover text-white rounded-xl text-sm font-semibold shadow-sm transition disabled:opacity-50">Simpan Produk</button>
             </div>
         </div>
     </div>
@@ -1194,6 +1323,144 @@
         </div>
     </div>
 
+    <!-- CSV / EXCEL EXPORT MODAL -->
+    <div x-show="isExportModalOpen" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4" x-cloak>
+        <div class="bg-white rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] flex flex-col animate-gentle-fade">
+            <!-- Header -->
+            <div class="flex justify-between items-start border-b border-slate-100 pb-3">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl app-soft app-text flex items-center justify-center font-bold">
+                        <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-base sm:text-lg">Download Laporan CSV / Excel</h3>
+                        <p class="text-xs text-slate-400">Format rapi, berstruktur akuntansi, dan siap dibuka di Excel / Sheets.</p>
+                    </div>
+                </div>
+                <button @click="isExportModalOpen = false" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4 overflow-y-auto flex-1 pr-1">
+                <!-- 1. Periode Laporan -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">1. Pilih Periode Laporan</label>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <button type="button" @click="exportConfig.period = 'today'" 
+                                :class="exportConfig.period === 'today' ? 'app-primary text-white font-bold shadow-xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'"
+                                class="py-2 px-3 rounded-xl text-xs font-semibold transition text-center">
+                            Hari Ini
+                        </button>
+                        <button type="button" @click="exportConfig.period = 'week'" 
+                                :class="exportConfig.period === 'week' ? 'app-primary text-white font-bold shadow-xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'"
+                                class="py-2 px-3 rounded-xl text-xs font-semibold transition text-center">
+                            7 Hari
+                        </button>
+                        <button type="button" @click="exportConfig.period = 'month'" 
+                                :class="exportConfig.period === 'month' ? 'app-primary text-white font-bold shadow-xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'"
+                                class="py-2 px-3 rounded-xl text-xs font-semibold transition text-center">
+                            30 Hari
+                        </button>
+                        <button type="button" @click="exportConfig.period = 'all'" 
+                                :class="exportConfig.period === 'all' ? 'app-primary text-white font-bold shadow-xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'"
+                                class="py-2 px-3 rounded-xl text-xs font-semibold transition text-center">
+                            Semua Data
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Ringkasan Data yang Akan Diekspor -->
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
+                    <div class="flex items-center justify-between text-xs text-slate-500">
+                        <span class="font-medium text-slate-700 flex items-center gap-1.5">
+                            <i data-lucide="info" class="w-3.5 h-3.5 text-emerald-600"></i>
+                            <span>Ringkasan Periode Terpilih</span>
+                        </span>
+                        <span class="font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 text-[11px]" x-text="getPeriodLabel(exportConfig.period)"></span>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-center">
+                        <div class="bg-white p-2 rounded-lg border border-slate-100 shadow-2xs">
+                            <span class="block text-[10px] text-slate-400 uppercase font-semibold">Transaksi</span>
+                            <span class="text-xs font-bold text-slate-800" x-text="currentExportStats.count + ' trx'"></span>
+                        </div>
+                        <div class="bg-white p-2 rounded-lg border border-slate-100 shadow-2xs">
+                            <span class="block text-[10px] text-slate-400 uppercase font-semibold">Item Terjual</span>
+                            <span class="text-xs font-bold text-slate-800" x-text="currentExportStats.totalQty + ' pcs'"></span>
+                        </div>
+                        <div class="bg-white p-2 rounded-lg border border-slate-100 shadow-2xs">
+                            <span class="block text-[10px] text-slate-400 uppercase font-semibold">Total Omzet</span>
+                            <span class="text-xs font-bold text-emerald-600" x-text="formatIDR(currentExportStats.revenue)"></span>
+                        </div>
+                        <div class="bg-white p-2 rounded-lg border border-slate-100 shadow-2xs">
+                            <span class="block text-[10px] text-slate-400 uppercase font-semibold">Est. Laba</span>
+                            <span class="text-xs font-bold text-emerald-600" x-text="formatIDR(currentExportStats.profit)"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Format Laporan -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">2. Pilih Format Laporan</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <label class="relative flex flex-col p-3 rounded-xl border-2 cursor-pointer transition"
+                               :class="exportConfig.format === 'transactions' ? 'border-emerald-500 bg-emerald-50/40 shadow-xs' : 'border-slate-200 hover:border-slate-300 bg-white'">
+                            <div class="flex items-center space-x-2.5">
+                                <input type="radio" value="transactions" x-model="exportConfig.format" class="text-emerald-600 focus:ring-emerald-500">
+                                <span class="font-bold text-xs text-slate-800">Rekap Transaksi Lengkap</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 mt-1.5 pl-6 leading-relaxed">
+                                1 baris per nota transaksi lengkap dengan jam, rincian barang, diskon, modal HPP, laba, dan baris total di akhir.
+                            </p>
+                        </label>
+
+                        <label class="relative flex flex-col p-3 rounded-xl border-2 cursor-pointer transition"
+                               :class="exportConfig.format === 'itemized' ? 'border-emerald-500 bg-emerald-50/40 shadow-xs' : 'border-slate-200 hover:border-slate-300 bg-white'">
+                            <div class="flex items-center space-x-2.5">
+                                <input type="radio" value="itemized" x-model="exportConfig.format" class="text-emerald-600 focus:ring-emerald-500">
+                                <span class="font-bold text-xs text-slate-800">Rincian Per Item Produk</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 mt-1.5 pl-6 leading-relaxed">
+                                1 baris per produk terjual dengan rincian kategori, Qty, harga modal, harga jual, dan laba per barang. Ideal untuk analisis & pivot table.
+                            </p>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 3. Pemisah Delimiter -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">3. Pemisah Kolom (Delimiter CSV)</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <label class="flex items-center space-x-2.5 p-2.5 rounded-xl border cursor-pointer transition"
+                               :class="exportConfig.delimiter === ',' ? 'border-emerald-500 bg-emerald-50/30' : 'border-slate-200 hover:bg-slate-50'">
+                            <input type="radio" value="," x-model="exportConfig.delimiter" class="text-emerald-600 focus:ring-emerald-500">
+                            <span class="text-xs font-medium text-slate-700">Koma (,) - Standar Universal / Google Sheets / Mac</span>
+                        </label>
+
+                        <label class="flex items-center space-x-2.5 p-2.5 rounded-xl border cursor-pointer transition"
+                               :class="exportConfig.delimiter === ';' ? 'border-emerald-500 bg-emerald-50/30' : 'border-slate-200 hover:bg-slate-50'">
+                            <input type="radio" value=";" x-model="exportConfig.delimiter" class="text-emerald-600 focus:ring-emerald-500">
+                            <span class="text-xs font-medium text-slate-700">Titik Koma (;) - Khusus Excel Windows (Regional ID)</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="flex items-center justify-end space-x-2 pt-3 border-t border-slate-100">
+                <button @click="isExportModalOpen = false" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition">
+                    Batal
+                </button>
+                <button @click="executeCSVExport()" 
+                        :disabled="currentExportStats.count === 0"
+                        class="px-5 py-2.5 app-primary app-primary-hover text-white rounded-xl text-xs font-bold shadow-md flex items-center space-x-2 transition disabled:opacity-50">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                    <span>Download File CSV</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Confirm Modal -->
     <div x-show="confirmModal.show" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" x-cloak>
         <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl space-y-4">
@@ -1265,7 +1532,9 @@
                 isCategoryModalOpen: false, isCategoryEditMode: false, categoryForm: {},
                 isStockModalOpen: false, stockForm: { productId: '', type: 'IN', qty: 1, note: '' },
                 isUserModalOpen: false, userForm: {}, isDetailModalOpen: false, selectedTrx: null, isProfileModalOpen: false, profileTarget: 'dashboard',
-                isQrisModalOpen: false,
+                isCompressingImage: false, isCompressingProfile: false, imageCompressionInfo: null,
+                isQrisModalOpen: false, isExportModalOpen: false,
+                exportConfig: { period: 'current', format: 'transactions', delimiter: ',' },
 
                 refreshIcons() {
                     setTimeout(() => {
@@ -1278,6 +1547,7 @@
                 switchTab(tabId) {
                     if (this.activeTab === tabId) return;
                     this.activeTab = tabId;
+                    window.scrollTo({ top: 0, behavior: 'instant' });
                     this.playSound('tap');
                     this.refreshIcons();
                 },
@@ -1329,6 +1599,7 @@
                     this.$watch('isDetailModalOpen', () => this.refreshIcons());
                     this.$watch('isProfileModalOpen', () => this.refreshIcons());
                     this.$watch('isQrisModalOpen', () => this.refreshIcons());
+                    this.$watch('isExportModalOpen', () => this.refreshIcons());
                     this.refreshIcons();
 
                     // AUTO-REFRESH TIAP 10 DETIK DARI GOOGLE SHEETS
@@ -1501,7 +1772,120 @@
                     return {ok: failed === 0, failed};
                 },
 
-                // UTILITIES
+                // UTILITIES & AUTOMATIC IMAGE COMPRESSION
+                formatFileSize(bytes) {
+                    if (!bytes || bytes <= 0) return '0 B';
+                    if (bytes < 1024) return bytes + ' B';
+                    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+                    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+                },
+
+                async compressImageFile(file, options = {}) {
+                    const {
+                        maxDimension = 800,
+                        maxSizeBytes = 45000,
+                        initialQuality = 0.82,
+                        minQuality = 0.40,
+                        mimeType = 'image/jpeg'
+                    } = options;
+
+                    if (!file) throw new Error('Berkas gambar tidak ditemukan.');
+                    if (!file.type || !file.type.startsWith('image/')) {
+                        throw new Error('File harus berupa gambar (JPG, PNG, WEBP, dll).');
+                    }
+
+                    const originalSizeBytes = file.size;
+                    const originalFormatted = this.formatFileSize(originalSizeBytes);
+
+                    // Baca file menjadi Data URL
+                    const dataUrl = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result);
+                        reader.onerror = () => reject(new Error('Gagal membaca berkas file gambar.'));
+                        reader.readAsDataURL(file);
+                    });
+
+                    // Muat ke elemen Image
+                    const img = await new Promise((resolve, reject) => {
+                        const el = new Image();
+                        el.onload = () => resolve(el);
+                        el.onerror = () => reject(new Error('Format berkas gambar tidak dapat diproses browser.'));
+                        el.src = dataUrl;
+                    });
+
+                    const origWidth = img.naturalWidth || img.width || 1;
+                    const origHeight = img.naturalHeight || img.height || 1;
+
+                    // Skala awal berdasarkan batas dimensi maksimum
+                    let scale = Math.min(1, maxDimension / Math.max(origWidth, origHeight));
+                    let curWidth = Math.max(1, Math.round(origWidth * scale));
+                    let curHeight = Math.max(1, Math.round(origHeight * scale));
+
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                    if (!ctx) throw new Error('Browser tidak mendukung Canvas untuk kompresi.');
+
+                    let quality = initialQuality;
+                    let outputDataUrl = '';
+                    let outputSizeBytes = Infinity;
+                    let iterations = 0;
+                    const maxIterations = 7;
+
+                    while (iterations < maxIterations) {
+                        canvas.width = curWidth;
+                        canvas.height = curHeight;
+
+                        // Gunakan interpolasi grafis berkualitas tinggi
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = 'high';
+                        ctx.clearRect(0, 0, curWidth, curHeight);
+                        ctx.drawImage(img, 0, 0, curWidth, curHeight);
+
+                        outputDataUrl = canvas.toDataURL(mimeType, quality);
+
+                        // Estimasi akurat ukuran byte dari base64
+                        const commaIdx = outputDataUrl.indexOf(',');
+                        const base64Str = outputDataUrl.substring(commaIdx + 1);
+                        outputSizeBytes = Math.round((base64Str.length * 3) / 4);
+
+                        // Hentikan iterasi jika sudah memenuhi target ukuran atau telah mencapai batas minimum
+                        if (outputSizeBytes <= maxSizeBytes || (quality <= minQuality && curWidth <= 320)) {
+                            break;
+                        }
+
+                        // Penyesuaian kualitas atau dimensi bertahap
+                        if (quality > 0.68) {
+                            quality = 0.68;
+                        } else if (quality > 0.55) {
+                            quality = 0.55;
+                        } else if (quality > 0.45) {
+                            quality = 0.45;
+                        } else {
+                            curWidth = Math.max(1, Math.round(curWidth * 0.82));
+                            curHeight = Math.max(1, Math.round(curHeight * 0.82));
+                            quality = 0.50;
+                        }
+                        iterations++;
+                    }
+
+                    const compressedFormatted = this.formatFileSize(outputSizeBytes);
+                    const savingsPercent = originalSizeBytes > outputSizeBytes 
+                        ? Math.round(((originalSizeBytes - outputSizeBytes) / originalSizeBytes) * 100) 
+                        : 0;
+
+                    return {
+                        dataUrl: outputDataUrl,
+                        originalBytes: originalSizeBytes,
+                        originalSize: originalFormatted,
+                        compressedBytes: outputSizeBytes,
+                        compressedSize: compressedFormatted,
+                        savingsPercent: savingsPercent,
+                        ratio: savingsPercent + '%',
+                        width: curWidth,
+                        height: curHeight
+                    };
+                },
+
                 get loginPreviewUser() {
                     const u = this.users.find(x => x.username === String(this.loginForm.username || '').trim());
                     return u || null;
@@ -1512,26 +1896,33 @@
                     if (!targetUser || targetUser.role !== 'admin') { this.showToast('Hanya Admin yang dapat mengganti foto profil.'); event.target.value=''; return; }
                     const file = event.target.files && event.target.files[0];
                     if (!file) return;
-                    if (!file.type.startsWith('image/')) return this.showToast('File harus berupa gambar.');
-                    if (file.size > 8 * 1024 * 1024) return this.showToast('Ukuran foto maksimal 8 MB.');
+                    if (!file.type || !file.type.startsWith('image/')) return this.showToast('File harus berupa gambar.');
+                    if (file.size > 15 * 1024 * 1024) return this.showToast('Ukuran foto maksimal 15 MB.');
+
+                    this.isCompressingProfile = true;
                     try {
-                        const dataUrl = await new Promise((resolve,reject) => { const r=new FileReader(); r.onload=()=>resolve(r.result); r.onerror=reject; r.readAsDataURL(file); });
-                        const img = await new Promise((resolve,reject) => { const im=new Image(); im.onload=()=>resolve(im); im.onerror=reject; im.src=dataUrl; });
-                        const maxSize=700, scale=Math.min(1,maxSize/Math.max(img.naturalWidth||img.width,img.naturalHeight||img.height));
-                        const canvas=document.createElement('canvas'); canvas.width=Math.max(1,Math.round((img.naturalWidth||img.width)*scale)); canvas.height=Math.max(1,Math.round((img.naturalHeight||img.height)*scale));
-                        const ctx=canvas.getContext('2d'); ctx.drawImage(img,0,0,canvas.width,canvas.height);
-                        let compressed=canvas.toDataURL('image/jpeg',0.78); if(compressed.length>45000) compressed=canvas.toDataURL('image/jpeg',0.58);
+                        const result = await this.compressImageFile(file, {
+                            maxDimension: 450,
+                            maxSizeBytes: 32000,
+                            initialQuality: 0.82
+                        });
                         let username = target==='login' ? String(this.loginForm.username||'').trim() : this.currentUser.username;
-                        const user=this.users.find(u=>u.username===username);
-                        if(!user) return this.showToast('Masukkan username terlebih dahulu untuk memilih foto profil.');
-                        user.profileImage=compressed;
-                        if(this.currentUser.username===username) this.currentUser={...user};
-                        this.saveLocalStorage(); await this.syncToGas('users', user.username, user);
-                        if(target==='dashboard') this.isProfileModalOpen=false;
-                        this.showToast('Foto profil berhasil diperbarui.');
+                        const user = this.users.find(u => u.username === username);
+                        if (!user) return this.showToast('Masukkan username terlebih dahulu untuk memilih foto profil.');
+                        user.profileImage = result.dataUrl;
+                        if (this.currentUser.username === username) this.currentUser = { ...user };
+                        this.saveLocalStorage();
+                        await this.syncToGas('users', user.username, user);
+                        if (target === 'dashboard') this.isProfileModalOpen = false;
+                        this.playSound('tap');
+                        this.showToast(`Foto profil otomatis dikompres (${result.originalSize} → ${result.compressedSize}, hemat ${result.ratio})!`);
                         this.refreshIcons();
-                    } catch(e) { this.showToast('Gagal memproses foto profil.'); }
-                    event.target.value='';
+                    } catch(e) {
+                        this.showToast('Gagal mengompres foto profil: ' + (e.message || ''));
+                    } finally {
+                        this.isCompressingProfile = false;
+                        event.target.value = '';
+                    }
                 },
                 removeProfileImage() {
                     if (this.currentUser.role !== 'admin') return this.showToast('Hanya Admin yang dapat mengubah foto profil.');
@@ -1784,8 +2175,8 @@
                             return a.name.localeCompare(b.name);
                         });
                 },
-                openProductModal() { this.isEditMode = false; this.productForm = { id: 'P'+Date.now().toString().slice(-4), name:'', barcode:'', category:this.categories[0]?.name||'', buyPrice:0, sellPrice:0, stock:10, unit:'Pcs', image:'' }; this.isProductModalOpen = true; this.refreshIcons(); },
-                editProduct(p) { this.isEditMode = true; this.productForm = { barcode:'', ...p }; this.isProductModalOpen = true; this.refreshIcons(); },
+                openProductModal() { this.isEditMode = false; this.imageCompressionInfo = null; this.isCompressingImage = false; this.productForm = { id: 'P'+Date.now().toString().slice(-4), name:'', barcode:'', category:this.categories[0]?.name||'', buyPrice:0, sellPrice:0, stock:10, unit:'Pcs', image:'' }; this.isProductModalOpen = true; this.refreshIcons(); },
+                editProduct(p) { this.isEditMode = true; this.imageCompressionInfo = null; this.isCompressingImage = false; this.productForm = { barcode:'', ...p }; this.isProductModalOpen = true; this.refreshIcons(); },
                 async saveProduct() {
                     if(!this.productForm.name || !this.productForm.category) return this.showToast('Nama & Kategori wajib diisi');
                     if (this.isEditMode) { const idx = this.products.findIndex(p => p.id === this.productForm.id); if (idx !== -1) this.products[idx] = {...this.productForm}; } 
@@ -1960,46 +2351,15 @@
                     if (!archive || !archive.transactions || archive.transactions.length === 0) {
                         return this.showToast('Tidak ada data transaksi untuk didownload.');
                     }
-                    const esc = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
-                    let csv = "data:text/csv;charset=utf-8,\uFEFF";
-                    csv += esc("REKAP TRANSAKSI HARIAN - " + this.settings.storeName) + "\r\n";
-                    csv += esc("Tanggal: " + (archive.dateFormatted || archive.date)) + "\r\n";
-                    csv += esc("Total Transaksi: " + (archive.totalTransactions || archive.transactions.length)) + "\r\n";
-                    csv += esc("Total Omzet: " + this.formatIDR(archive.totalRevenue)) + "\r\n";
-                    csv += esc("Estimasi Laba: " + this.formatIDR(archive.totalProfit)) + "\r\n";
-                    csv += esc("Total Item Terjual: " + (archive.totalItemsSold || 0) + " pcs") + "\r\n";
-                    csv += "\r\n";
-
-                    csv += ['No. Transaksi','Tanggal & Waktu','Kasir','Pelanggan','Metode Bayar','Item Terjual','Rincian Barang','Subtotal','Diskon','Total (Rp)','Estimasi Laba (Rp)'].map(esc).join(',') + "\r\n";
-
-                    archive.transactions.forEach(t => {
-                        const itemDetails = (t.items || []).map(i => `${i.name} (${i.qty}x @${i.sellPrice})`).join('; ');
-                        const totalItems = (t.items || []).reduce((s, i) => s + (Number(i.qty) || 0), 0);
-                        const cost = (t.items || []).reduce((c, i) => c + ((Number(i.buyPrice) || 0) * (Number(i.qty) || 1)), 0);
-                        const profit = Math.max(0, (Number(t.total) || 0) - cost);
-
-                        csv += [
-                            esc(t.id),
-                            esc(t.date),
-                            esc(t.cashier || ''),
-                            esc(t.customer || 'Umum'),
-                            esc(t.method || 'Tunai'),
-                            totalItems,
-                            esc(itemDetails),
-                            t.subtotal || t.total,
-                            t.discount || 0,
-                            t.total,
-                            profit
-                        ].join(',') + "\r\n";
+                    const csv = this.buildCSVContent({
+                        title: 'REKAP ARSIP PENJUALAN HARIAN - ' + (this.settings.storeName || 'KOPMA STORE').toUpperCase(),
+                        periodText: 'Arsip Tanggal: ' + (archive.dateFormatted || archive.date),
+                        transactions: archive.transactions,
+                        mode: 'transactions',
+                        delimiter: ','
                     });
-
-                    const link = document.createElement("a");
-                    link.setAttribute("href", encodeURI(csv));
-                    link.setAttribute("download", `rekap_transaksi_${archive.date}.csv`);
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    this.showToast(`Laporan CSV tanggal ${archive.date} berhasil didownload!`);
+                    this.triggerCSVDownload(csv, `rekap_transaksi_${archive.date}.csv`);
+                    this.showToast(`Laporan CSV tanggal ${archive.dateFormatted || archive.date} berhasil didownload!`);
                 },
 
                 confirmDeleteDailyArchive(archive) {
@@ -2113,16 +2473,376 @@
                     event.target.value = '';
                 },
 
-                exportCSVReport() {
-                    if (this.allTransactions.length === 0) return this.showToast('Tidak ada data untuk diekspor.');
-                    const esc = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
-                    let csv = "data:text/csv;charset=utf-8,\uFEFF" + ['No. Transaksi','Tanggal & Waktu','Kasir','Total'].join(',') + "\r\n";
-                    this.allTransactions.forEach(t => {
-                        csv += [esc(t.id),esc(t.date),esc(t.cashier),t.total].join(',') + "\r\n";
+                // --- SISTEM EKSPOR CSV / EXCEL PROFESIONAL ---
+                getExportTransactions(period) {
+                    const list = this.allTransactions;
+                    if (period === 'all') return list;
+                    const now = new Date();
+                    const todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+                    if (period === 'today') {
+                        return list.filter(t => t.date && String(t.date).startsWith(todayStr));
+                    }
+                    if (period === 'active') {
+                        return this.transactions;
+                    }
+                    if (period === 'week') {
+                        const d = new Date();
+                        d.setDate(d.getDate() - 7);
+                        return list.filter(t => {
+                            const tDate = new Date(String(t.date).replace(' ', 'T'));
+                            return !isNaN(tDate.getTime()) ? tDate >= d : false;
+                        });
+                    }
+                    if (period === 'month') {
+                        const d = new Date();
+                        d.setDate(d.getDate() - 30);
+                        return list.filter(t => {
+                            const tDate = new Date(String(t.date).replace(' ', 'T'));
+                            return !isNaN(tDate.getTime()) ? tDate >= d : false;
+                        });
+                    }
+                    return list;
+                },
+
+                getPeriodLabel(period) {
+                    const now = new Date();
+                    const todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+                    if (period === 'today') return `Hari Ini (${todayStr})`;
+                    if (period === 'active') return `Transaksi Aktif Sesi Ini (${todayStr})`;
+                    if (period === 'week') return `7 Hari Terakhir (s/d ${todayStr})`;
+                    if (period === 'month') return `30 Hari Terakhir (s/d ${todayStr})`;
+                    return 'Semua Data Penjualan (Riwayat Lengkap)';
+                },
+
+                get currentExportStats() {
+                    const list = this.getExportTransactions(this.exportConfig?.period || 'all');
+                    const count = list.length;
+                    let totalQty = 0;
+                    let revenue = 0;
+                    let profit = 0;
+                    list.forEach(t => {
+                        revenue += Number(t.total) || 0;
+                        const items = Array.isArray(t.items) ? t.items : [];
+                        const cost = items.reduce((c, i) => c + ((Number(i.buyPrice) || 0) * (Number(i.qty) || 1)), 0);
+                        profit += Math.max(0, (Number(t.total) || 0) - cost);
+                        totalQty += items.reduce((sum, i) => sum + (Number(i.qty) || 0), 0);
                     });
-                    const link = document.createElement("a"); link.setAttribute("href", encodeURI(csv));
-                    link.setAttribute("download", `rekap_laporan_penjualan_${new Date().toISOString().slice(0,10)}.csv`);
-                    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+                    return { count, totalQty, revenue, profit };
+                },
+
+                openExportModal(defaultPeriod = null) {
+                    if (defaultPeriod) {
+                        this.exportConfig.period = defaultPeriod;
+                    } else if (this.reportFilter && ['all', 'today', 'week', 'month'].includes(this.reportFilter)) {
+                        this.exportConfig.period = this.reportFilter;
+                    }
+                    this.isExportModalOpen = true;
+                    this.refreshIcons();
+                },
+
+                triggerCSVDownload(content, filename) {
+                    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.href = url;
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    setTimeout(() => URL.revokeObjectURL(url), 1000);
+                },
+
+                buildCSVContent({ title, periodText, transactions, mode = 'transactions', delimiter = ',' }) {
+                    const d = delimiter;
+                    const esc = val => {
+                        if (val === null || val === undefined) return '""';
+                        let str = String(val);
+                        str = str.replace(/"/g, '""');
+                        return `"${str}"`;
+                    };
+
+                    const num = val => {
+                        const n = Number(val);
+                        return isNaN(n) ? '0' : String(Math.round(n * 100) / 100);
+                    };
+
+                    let sumTransactions = transactions.length;
+                    let sumItemsQty = 0;
+                    let sumSubtotal = 0;
+                    let sumDiscount = 0;
+                    let sumTotal = 0;
+                    let sumCost = 0;
+                    let sumProfit = 0;
+                    let sumCash = 0;
+                    let sumChange = 0;
+
+                    transactions.forEach(t => {
+                        const items = Array.isArray(t.items) ? t.items : [];
+                        const itemsCount = items.reduce((s, i) => s + (Number(i.qty) || 0), 0);
+                        const sub = Number(t.subtotal ?? t.total) || 0;
+                        const disc = Number(t.discount) || 0;
+                        const tot = Number(t.total) || 0;
+                        const cost = items.reduce((c, i) => c + ((Number(i.buyPrice) || 0) * (Number(i.qty) || 1)), 0);
+                        const pft = Math.max(0, tot - cost);
+                        const cashPaid = Number(t.cash ?? tot) || 0;
+                        const chg = Number(t.change ?? 0) || 0;
+
+                        sumItemsQty += itemsCount;
+                        sumSubtotal += sub;
+                        sumDiscount += disc;
+                        sumTotal += tot;
+                        sumCost += cost;
+                        sumProfit += pft;
+                        sumCash += cashPaid;
+                        sumChange += chg;
+                    });
+
+                    const avgOrder = sumTransactions > 0 ? Math.round(sumTotal / sumTransactions) : 0;
+                    const marginPercent = sumTotal > 0 ? ((sumProfit / sumTotal) * 100).toFixed(1) : '0';
+
+                    const now = new Date();
+                    const exportTimeStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0') + ' ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':' + String(now.getSeconds()).padStart(2,'0');
+
+                    let lines = [];
+
+                    // 1. IDENTITAS DOKUMEN LAPORAN
+                    lines.push([esc(title || 'LAPORAN PENJUALAN KASIR')].join(d));
+                    lines.push([esc('Nama Usaha / Toko'), esc(this.settings.storeName || 'KOPMA Store')].join(d));
+                    lines.push([esc('Alamat Toko'), esc(this.settings.address || '-')].join(d));
+                    lines.push([esc('Kontak / Telepon'), esc(this.settings.phone || '-')].join(d));
+                    lines.push([esc('Periode Laporan'), esc(periodText || 'Semua Data')].join(d));
+                    lines.push([esc('Tanggal & Jam Unduh'), esc(exportTimeStr)].join(d));
+                    lines.push([esc('Dicetak Oleh'), esc((this.currentUser?.name || 'Kasir') + ' (' + (this.currentUser?.role || 'operator') + ')')].join(d));
+                    lines.push([esc('Koneksi Database'), esc(this.dbSyncReady ? 'Google Sheets (Terhubung)' : 'Penyimpanan Lokal (Offline)')].join(d));
+                    lines.push('');
+
+                    // 2. RINGKASAN EKSEKUTIF KEUANGAN
+                    lines.push([esc('--- RINGKASAN KEUANGAN & KINERJA PENJUALAN ---')].join(d));
+                    lines.push([esc('Total Transaksi Tercatat'), sumTransactions].join(d));
+                    lines.push([esc('Total Item Terjual (Qty)'), sumItemsQty, esc('pcs')].join(d));
+                    lines.push([esc('Total Penjualan Kotor (Subtotal)'), esc(this.formatIDR(sumSubtotal)), num(sumSubtotal)].join(d));
+                    lines.push([esc('Total Potongan Diskon'), esc(this.formatIDR(sumDiscount)), num(sumDiscount)].join(d));
+                    lines.push([esc('Total Penjualan Bersih (Omzet)'), esc(this.formatIDR(sumTotal)), num(sumTotal)].join(d));
+                    lines.push([esc('Total Estimasi Modal (HPP)'), esc(this.formatIDR(sumCost)), num(sumCost)].join(d));
+                    lines.push([esc('Total Estimasi Keuntungan (Laba Bersih)'), esc(this.formatIDR(sumProfit)), num(sumProfit)].join(d));
+                    lines.push([esc('Rata-rata Margin Keuntungan'), esc(marginPercent + '%')].join(d));
+                    lines.push([esc('Rata-rata Transaksi (AOV)'), esc(this.formatIDR(avgOrder)), num(avgOrder)].join(d));
+                    lines.push('');
+
+                    if (mode === 'itemized') {
+                        // 3. TABEL DETAIL PENJUALAN PER ITEM PRODUK
+                        lines.push([esc('--- TABEL DETAIL PENJUALAN PER ITEM PRODUK ---')].join(d));
+                        const itemHeaders = [
+                            'No.',
+                            'No. Transaksi',
+                            'Tanggal',
+                            'Jam',
+                            'Kategori Produk',
+                            'Nama Produk',
+                            'Jumlah Terjual (Qty)',
+                            'Satuan',
+                            'Harga Modal HPP (Rp)',
+                            'Harga Jual Satuan (Rp)',
+                            'Total Penjualan / Omzet (Rp)',
+                            'Total Modal HPP (Rp)',
+                            'Laba Bersih Produk (Rp)',
+                            'Metode Bayar',
+                            'Kasir',
+                            'Pelanggan'
+                        ];
+                        lines.push(itemHeaders.map(esc).join(d));
+
+                        let itemRowNo = 1;
+                        let grandItemQty = 0;
+                        let grandItemOmzet = 0;
+                        let grandItemCost = 0;
+                        let grandItemProfit = 0;
+
+                        transactions.forEach(t => {
+                            let datePart = '-';
+                            let timePart = '-';
+                            if (t.date) {
+                                const parts = String(t.date).trim().split(' ');
+                                datePart = parts[0] || t.date;
+                                timePart = parts[1] || '';
+                            }
+
+                            const items = Array.isArray(t.items) ? t.items : [];
+                            items.forEach(item => {
+                                const p = this.products.find(x => x.id === item.id || x.name === item.name);
+                                const category = item.category || p?.category || 'Umum';
+                                const unit = item.unit || p?.unit || 'Pcs';
+                                const qty = Number(item.qty) || 1;
+                                const buyPrice = Number(item.buyPrice ?? p?.buyPrice ?? 0);
+                                const sellPrice = Number(item.sellPrice ?? p?.sellPrice ?? 0);
+                                const totalOmzet = qty * sellPrice;
+                                const totalCost = qty * buyPrice;
+                                const profit = totalOmzet - totalCost;
+
+                                grandItemQty += qty;
+                                grandItemOmzet += totalOmzet;
+                                grandItemCost += totalCost;
+                                grandItemProfit += profit;
+
+                                const row = [
+                                    itemRowNo++,
+                                    esc(t.id),
+                                    esc(datePart),
+                                    esc(timePart),
+                                    esc(category),
+                                    esc(item.name),
+                                    num(qty),
+                                    esc(unit),
+                                    num(buyPrice),
+                                    num(sellPrice),
+                                    num(totalOmzet),
+                                    num(totalCost),
+                                    num(profit),
+                                    esc(t.method || 'Tunai'),
+                                    esc(t.cashier || ''),
+                                    esc(t.customer || 'Umum')
+                                ];
+                                lines.push(row.join(d));
+                            });
+                        });
+
+                        // Baris Grand Total Itemized
+                        const itemTotalRow = [
+                            esc('TOTAL KESELURUHAN'),
+                            '', '', '', '', '',
+                            num(grandItemQty),
+                            '', '', '',
+                            num(grandItemOmzet),
+                            num(grandItemCost),
+                            num(grandItemProfit),
+                            '', '', ''
+                        ];
+                        lines.push(itemTotalRow.join(d));
+
+                    } else {
+                        // 3. TABEL REKAP TRANSAKSI LENGKAP (PER NOTA)
+                        lines.push([esc('--- TABEL RINCIAN TRANSAKSI PENJUALAN ---')].join(d));
+                        const trxHeaders = [
+                            'No.',
+                            'No. Transaksi',
+                            'Tanggal',
+                            'Jam',
+                            'Kasir',
+                            'Pelanggan',
+                            'Metode Pembayaran',
+                            'Total Item (Qty)',
+                            'Rincian Produk Belanja',
+                            'Subtotal (Rp)',
+                            'Diskon (Rp)',
+                            'Total Penjualan (Rp)',
+                            'Modal HPP (Rp)',
+                            'Laba Bersih (Rp)',
+                            'Uang Diterima (Rp)',
+                            'Kembalian (Rp)'
+                        ];
+                        lines.push(trxHeaders.map(esc).join(d));
+
+                        transactions.forEach((t, idx) => {
+                            let datePart = '-';
+                            let timePart = '-';
+                            if (t.date) {
+                                const parts = String(t.date).trim().split(' ');
+                                datePart = parts[0] || t.date;
+                                timePart = parts[1] || '';
+                            }
+
+                            const items = Array.isArray(t.items) ? t.items : [];
+                            const itemDetails = items.map(i => `${i.name} (${i.qty}x @${i.sellPrice})`).join('; ');
+                            const totalQty = items.reduce((s, i) => s + (Number(i.qty) || 0), 0);
+                            const sub = Number(t.subtotal ?? t.total) || 0;
+                            const disc = Number(t.discount) || 0;
+                            const tot = Number(t.total) || 0;
+                            const cost = items.reduce((c, i) => c + ((Number(i.buyPrice) || 0) * (Number(i.qty) || 1)), 0);
+                            const profit = Math.max(0, tot - cost);
+                            const cashPaid = Number(t.cash ?? tot) || 0;
+                            const chg = Number(t.change ?? 0) || 0;
+
+                            const row = [
+                                idx + 1,
+                                esc(t.id),
+                                esc(datePart),
+                                esc(timePart),
+                                esc(t.cashier || ''),
+                                esc(t.customer || 'Umum'),
+                                esc(t.method || 'Tunai'),
+                                num(totalQty),
+                                esc(itemDetails),
+                                num(sub),
+                                num(disc),
+                                num(tot),
+                                num(cost),
+                                num(profit),
+                                num(cashPaid),
+                                num(chg)
+                            ];
+                            lines.push(row.join(d));
+                        });
+
+                        // Baris Grand Total Transaksi
+                        const trxTotalRow = [
+                            esc('TOTAL KESELURUHAN'),
+                            '', '', '', '', '', '',
+                            num(sumItemsQty),
+                            '',
+                            num(sumSubtotal),
+                            num(sumDiscount),
+                            num(sumTotal),
+                            num(sumCost),
+                            num(sumProfit),
+                            num(sumCash),
+                            num(sumChange)
+                        ];
+                        lines.push(trxTotalRow.join(d));
+                    }
+
+                    return '\uFEFF' + lines.join('\r\n') + '\r\n';
+                },
+
+                executeCSVExport() {
+                    const trxs = this.getExportTransactions(this.exportConfig.period);
+                    if (trxs.length === 0) {
+                        return this.showToast('Tidak ada data transaksi pada periode yang dipilih.');
+                    }
+                    const periodLabel = this.getPeriodLabel(this.exportConfig.period);
+                    const mode = this.exportConfig.format || 'transactions';
+                    const delimiter = this.exportConfig.delimiter || ',';
+                    const title = `LAPORAN PENJUALAN & KEUANGAN - ${(this.settings.storeName || 'KOPMA STORE').toUpperCase()}`;
+                    
+                    const csv = this.buildCSVContent({
+                        title: title,
+                        periodText: periodLabel,
+                        transactions: trxs,
+                        mode: mode,
+                        delimiter: delimiter
+                    });
+
+                    const now = new Date();
+                    const dateSlug = now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0');
+                    const filename = `laporan_${mode === 'itemized' ? 'rincian_item' : 'rekap_transaksi'}_${this.exportConfig.period}_${dateSlug}.csv`;
+
+                    this.triggerCSVDownload(csv, filename);
+                    this.isExportModalOpen = false;
+                    this.showToast(`Laporan CSV (${mode === 'itemized' ? 'Rincian Item' : 'Rekap Transaksi'}) berhasil didownload!`);
+                },
+
+                exportCSVReport(period = null) {
+                    const p = period || this.reportFilter || 'all';
+                    const trxs = this.getExportTransactions(p);
+                    if (trxs.length === 0) return this.showToast('Tidak ada data transaksi untuk diekspor.');
+                    const csv = this.buildCSVContent({
+                        title: `LAPORAN PENJUALAN - ${(this.settings.storeName || 'KOPMA STORE').toUpperCase()}`,
+                        periodText: this.getPeriodLabel(p),
+                        transactions: trxs,
+                        mode: 'transactions',
+                        delimiter: ','
+                    });
+                    const dateSlug = new Date().toISOString().slice(0,10);
+                    this.triggerCSVDownload(csv, `rekap_laporan_penjualan_${dateSlug}.csv`);
                     this.showToast('Laporan CSV berhasil didownload!');
                 },
 
@@ -2215,35 +2935,38 @@
                 async handleProductImage(event) {
                     const file = event.target.files && event.target.files[0];
                     if (!file) return;
-                    if (!file.type.startsWith('image/')) return this.showToast('File harus berupa gambar.');
-                    if (file.size > 8 * 1024 * 1024) return this.showToast('Ukuran file maksimal 8 MB.');
+                    await this.processProductImageFile(file);
+                    event.target.value = '';
+                },
+                async handleProductImageDrop(event) {
+                    const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
+                    if (!file) return;
+                    await this.processProductImageFile(file);
+                },
+                async processProductImageFile(file) {
+                    if (!file.type || !file.type.startsWith('image/')) {
+                        return this.showToast('File yang dipilih harus berupa gambar (JPG, PNG, WEBP, dll).');
+                    }
+                    if (file.size > 15 * 1024 * 1024) {
+                        return this.showToast('Ukuran berkas terlalu besar (maksimal 15 MB).');
+                    }
+                    this.isCompressingImage = true;
                     try {
-                        const dataUrl = await new Promise((resolve, reject) => {
-                            const reader = new FileReader();
-                            reader.onload = () => resolve(reader.result);
-                            reader.onerror = reject;
-                            reader.readAsDataURL(file);
+                        const result = await this.compressImageFile(file, {
+                            maxDimension: 800,
+                            maxSizeBytes: 48000,
+                            initialQuality: 0.82
                         });
-                        const img = await new Promise((resolve, reject) => {
-                            const el = new Image();
-                            el.onload = () => resolve(el);
-                            el.onerror = reject;
-                            el.src = dataUrl;
-                        });
-                        const maxSize = 900;
-                        const scale = Math.min(1, maxSize / Math.max(img.naturalWidth || img.width, img.naturalHeight || img.height));
-                        const canvas = document.createElement('canvas');
-                        canvas.width = Math.max(1, Math.round((img.naturalWidth || img.width) * scale));
-                        canvas.height = Math.max(1, Math.round((img.naturalHeight || img.height) * scale));
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                        let compressed = canvas.toDataURL('image/jpeg', 0.78);
-                        if (compressed.length > 45000) compressed = canvas.toDataURL('image/jpeg', 0.58);
-                        this.productForm.image = compressed;
+                        this.productForm.image = result.dataUrl;
+                        this.imageCompressionInfo = result;
                         this.productImageRefresh = Date.now();
-                        this.showToast('Foto berhasil dimuat. Klik Simpan untuk menerapkannya.');
-                    } catch (_) {
-                        this.showToast('Gagal membaca atau memproses gambar.');
+                        this.playSound('tap');
+                        this.showToast(`Foto produk otomatis dikompres (${result.originalSize} → ${result.compressedSize}, hemat ${result.ratio})!`);
+                    } catch (err) {
+                        this.showToast('Gagal memproses dan mengompres foto: ' + (err.message || 'Format tidak didukung'));
+                    } finally {
+                        this.isCompressingImage = false;
+                        this.refreshIcons();
                     }
                 },
                 setTheme(key) {
