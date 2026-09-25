@@ -57,10 +57,22 @@
     }
   ],
   "categories": [
-    { "id": 1, "name": "Minuman" },
-    { "id": 2, "name": "Makanan & Snack" },
-    { "id": 3, "name": "Alat Tulis & Kampus" },
-    { "id": 4, "name": "Sembako & Kebutuhan" }
+    {
+      "id": 1,
+      "name": "Minuman"
+    },
+    {
+      "id": 2,
+      "name": "Makanan & Snack"
+    },
+    {
+      "id": 3,
+      "name": "Alat Tulis & Kampus"
+    },
+    {
+      "id": 4,
+      "name": "Sembako & Kebutuhan"
+    }
   ],
   "transactions": [],
   "dailyArchives": [],
@@ -72,7 +84,7 @@
     "address": "Gedung Koperasi Mahasiswa",
     "phone": "081234567890",
     "receiptNote": "Terima kasih telah berbelanja di KOPMA.",
-    "theme": "emerald",
+    "theme": "feb",
     "soundEnabled": true,
     "bankAccount": "BCA 1234567890 a/n KOPMA",
     "updatedAt": 1790267500000
@@ -93,5 +105,5 @@
       "profileImage": ""
     }
   ],
-  "updatedAt": 1790267500000
+  "updatedAt": 1790270679699
 }

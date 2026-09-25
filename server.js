@@ -88,7 +88,7 @@ function getInitialDb() {
       address: 'Gedung Koperasi Mahasiswa',
       phone: '081234567890',
       receiptNote: 'Terima kasih telah berbelanja di KOPMA.',
-      theme: 'emerald',
+      theme: 'feb',
       soundEnabled: true,
       bankAccount: 'BCA 1234567890 a/n KOPMA',
       updatedAt: Date.now()

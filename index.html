@@ -7,7 +7,7 @@
     <meta name="description" content="Aplikasi Kasir Online & Manajemen Toko dengan sinkronisasi Google Sheets, manajemen stok, laporan penjualan, dan cetak struk.">
     <meta property="og:title" content="Aplikasi Kasir Online & Manajemen Toko">
     <meta property="og:description" content="Aplikasi Kasir Online & Manajemen Toko dengan sinkronisasi Google Sheets, manajemen stok, laporan penjualan, dan cetak struk.">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23059669' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7'/><path d='M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8'/><path d='M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4'/><path d='M2 7h20'/></svg>">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23eab308' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7'/><path d='M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8'/><path d='M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4'/><path d='M2 7h20'/></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -16,10 +16,18 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
-        :root { --app-primary: #059669; --app-primary-dark: #047857; --app-soft: #ecfdf5; }
-        .app-primary { background-color: var(--app-primary) !important; }
+        :root { 
+            --app-primary: #eab308; 
+            --app-primary-dark: #ca8a04; 
+            --app-soft: #fefce8; 
+            --app-text: #a16207;
+            --app-contrast: #1e293b;
+        }
+        .app-primary { background-color: var(--app-primary) !important; color: var(--app-contrast, #ffffff) !important; }
+        .app-primary.text-white, .app-primary .text-white { color: var(--app-contrast, #ffffff) !important; }
+        .app-primary svg, .app-primary button svg { stroke: currentColor; }
         .app-primary-hover:hover { background-color: var(--app-primary-dark) !important; }
-        .app-text { color: var(--app-primary) !important; }
+        .app-text { color: var(--app-text, var(--app-primary)) !important; }
         .app-soft { background-color: var(--app-soft) !important; }
         [x-cloak] { display: none !important; }
 
@@ -137,7 +145,7 @@
                         <div class="flex items-center space-x-2">
                             <h1 class="font-bold text-slate-900 text-sm sm:text-base tracking-tight truncate max-w-[150px] sm:max-w-xs" x-text="settings.storeName"></h1>
                             <span class="hidden sm:inline-block text-slate-300">/</span>
-                            <span class="hidden sm:inline-flex items-center text-xs font-semibold app-text bg-emerald-50 px-2 py-0.5 rounded-md" x-text="tabs.find(t => t.id === activeTab)?.name"></span>
+                            <span class="hidden sm:inline-flex items-center text-xs font-semibold app-text app-soft px-2.5 py-0.5 rounded-md" x-text="tabs.find(t => t.id === activeTab)?.name || (activeTab === 'kategori' ? 'Produk' : '')"></span>
                         </div>
                         <p class="text-[11px] text-slate-400 hidden sm:block">Sistem POS & Manajemen Toko</p>
                     </div>
@@ -201,69 +209,443 @@
         <!-- Main Content Area -->
         <main class="flex-1 flex flex-col min-w-0">
 
-            <!-- 1. DASHBOARD MODULE -->
+            <!-- 1. DASHBOARD MODULE: LAPORAN PENJUALAN -->
             <div x-show="activeTab === 'dashboard'" 
                  x-transition:enter="tab-fade-slide-enter" 
                  x-transition:enter-start="tab-fade-slide-start" 
                  x-transition:enter-end="tab-fade-slide-end" 
                  class="p-4 sm:p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full pb-28 md:pb-32" x-cloak>
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
-                        <div><p class="text-sm font-medium text-slate-500">Penjualan Hari Ini</p><h3 class="text-2xl font-bold text-slate-800 mt-1" x-text="formatIDR(stats.todaySales)"></h3></div>
-                        <div class="w-12 h-12 app-soft app-text rounded-xl flex items-center justify-center"><i data-lucide="wallet" class="w-6 h-6"></i></div>
+
+                <!-- Modern Dashboard Header & Action Bar -->
+                <div class="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-6 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <div class="flex items-center space-x-2 text-xs font-semibold text-slate-400 mb-1">
+                            <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span class="text-emerald-700 font-bold">Laporan Penjualan Real-Time</span>
+                            <span>·</span>
+                            <span x-text="currentDateStr"></span>
+                            <span>·</span>
+                            <span class="font-mono tabular-nums text-slate-500" x-text="currentTimeStr"></span>
+                        </div>
+                        <h2 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center space-x-2">
+                            <span>Laporan Penjualan</span>
+                            <span class="text-xs font-bold px-2.5 py-0.5 rounded-full app-soft app-text uppercase tracking-wider">Ringkasan Eksekutif</span>
+                        </h2>
+                        <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Analisis performa omzet kasir, estimasi laba bersih, rincian pembayaran, dan produk terlaris.</p>
                     </div>
-                    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
-                        <div><p class="text-sm font-medium text-slate-500">Estimasi Laba Bersih</p><h3 class="text-2xl font-bold text-emerald-600 mt-1" x-text="formatIDR(stats.todayProfit)"></h3></div>
-                        <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center"><i data-lucide="trending-up" class="w-6 h-6"></i></div>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
-                        <div><p class="text-sm font-medium text-slate-500">Transaksi / Terjual</p><h3 class="text-2xl font-bold text-slate-800 mt-1" x-text="stats.todayTransactions + ' / ' + stats.todayItemsSold + ' pcs'"></h3></div>
-                        <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center"><i data-lucide="receipt" class="w-6 h-6"></i></div>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
-                        <div><p class="text-sm font-medium text-slate-500">Stok Menipis</p><h3 class="text-2xl font-bold text-rose-600 mt-1" x-text="lowStockProducts.length + ' Produk'"></h3></div>
-                        <div class="w-12 h-12 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center"><i data-lucide="alert-triangle" class="w-6 h-6"></i></div>
+
+                    <!-- Right Controls: Period Selector & Quick Actions -->
+                    <div class="flex flex-wrap items-center gap-2.5 shrink-0">
+                        <!-- Segmented Period Filter -->
+                        <div class="bg-slate-100 p-1 rounded-xl border border-slate-200/70 flex items-center space-x-1">
+                            <button type="button" @click="dashboardPeriod = 'today'; $nextTick(() => refreshIcons())" 
+                                    :class="dashboardPeriod === 'today' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-800 font-medium'"
+                                    class="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs transition cursor-pointer">
+                                Hari Ini
+                            </button>
+                            <button type="button" @click="dashboardPeriod = '7days'; $nextTick(() => refreshIcons())" 
+                                    :class="dashboardPeriod === '7days' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-800 font-medium'"
+                                    class="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs transition cursor-pointer">
+                                7 Hari
+                            </button>
+                            <button type="button" @click="dashboardPeriod = 'month'; $nextTick(() => refreshIcons())" 
+                                    :class="dashboardPeriod === 'month' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-800 font-medium'"
+                                    class="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs transition cursor-pointer">
+                                Bulan Ini
+                            </button>
+                            <button type="button" @click="dashboardPeriod = 'all'; $nextTick(() => refreshIcons())" 
+                                    :class="dashboardPeriod === 'all' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-800 font-medium'"
+                                    class="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs transition cursor-pointer">
+                                Semua
+                            </button>
+                        </div>
+
+                        <!-- CTA Quick Actions: Export CSV & Buka Kasir -->
+                        <div class="flex items-center gap-2">
+                            <button type="button" 
+                                    @click="openExportModal(dashboardPeriod === 'all' ? 'all' : (dashboardPeriod === 'month' ? 'month' : (dashboardPeriod === '7days' ? 'week' : 'today')))" 
+                                    class="px-3.5 py-2 app-soft hover:opacity-90 app-text font-bold rounded-xl text-xs border border-emerald-200/80 shadow-2xs flex items-center space-x-1.5 transition cursor-pointer"
+                                    title="Download data laporan penjualan dalam format CSV / Excel">
+                                <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                                <span>Export CSV</span>
+                            </button>
+
+                            <button type="button" 
+                                    @click="switchTab('kasir')" 
+                                    class="px-3.5 sm:px-4 py-2 app-primary app-primary-hover text-white rounded-xl text-xs font-bold shadow-sm flex items-center space-x-1.5 transition transform active:scale-95 cursor-pointer">
+                                <i data-lucide="store" class="w-4 h-4"></i>
+                                <span>Buka Kasir</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                        <div class="flex items-center justify-between mb-4"><h3 class="font-bold text-slate-800 text-lg">Riwayat Penjualan Terakhir</h3><button @click="activeTab = 'riwayat'" class="text-xs font-semibold app-text hover:underline">Lihat Semua</button></div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse">
-                                <thead>
-                                    <tr class="border-b border-slate-100 text-xs font-semibold text-slate-400 uppercase">
-                                        <th class="py-3 px-4">No. Transaksi</th><th class="py-3 px-4">Waktu</th><th class="py-3 px-4">Kasir</th><th class="py-3 px-4 text-right">Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-slate-100 text-sm">
-                                    <template x-for="trx in transactions.slice(0, 5)" :key="trx.id">
-                                        <tr class="hover:bg-slate-50 transition">
-                                            <td class="py-3 px-4 font-semibold app-text" x-text="trx.id"></td>
-                                            <td class="py-3 px-4 text-slate-500" x-text="trx.date"></td>
-                                            <td class="py-3 px-4 text-slate-700" x-text="trx.cashier"></td>
-                                            <td class="py-3 px-4 text-right font-medium text-slate-800" x-text="formatIDR(trx.total)"></td>
-                                        </tr>
-                                    </template>
-                                </tbody>
-                            </table>
+                <!-- 4 KPI Modern Metric Cards (Semua Khusus Laporan Penjualan) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+                    <!-- Card 1: Total Omzet Penjualan -->
+                    <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-2xs hover:border-slate-300 hover:shadow-xs transition flex flex-col justify-between">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Omzet Penjualan</p>
+                                <h3 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight font-mono tabular-nums mt-1.5" x-text="formatIDR(dashboardStats.sales)"></h3>
+                            </div>
+                            <div class="w-11 h-11 app-soft app-text rounded-xl flex items-center justify-center shrink-0 shadow-2xs">
+                                <i data-lucide="wallet" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                            <span class="text-slate-500 font-medium flex items-center space-x-1">
+                                <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-600"></i>
+                                <span class="font-bold text-slate-700 font-mono tabular-nums" x-text="dashboardStats.transactions"></span>
+                                <span>transaksi selesai</span>
+                            </span>
+                            <span class="text-[11px] font-semibold text-slate-400 capitalize" x-text="dashboardPeriod === 'today' ? 'Hari ini' : (dashboardPeriod === '7days' ? '7 hari' : (dashboardPeriod === 'month' ? 'Bulan ini' : 'Semua'))"></span>
                         </div>
                     </div>
-                    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                        <div class="flex items-center justify-between mb-4"><h3 class="font-bold text-slate-800 text-lg">Stok Menipis (&lt; 5)</h3><button @click="activeTab = 'stok'" class="text-xs font-semibold app-text hover:underline">Kelola</button></div>
-                        <div class="space-y-3">
-                            <template x-for="prod in lowStockProducts" :key="prod.id">
-                                <div class="flex items-center justify-between p-3 bg-rose-50/50 border border-rose-100 rounded-xl">
-                                    <div class="flex items-center space-x-3">
-                                        <div class="w-10 h-10 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center font-bold text-xs"><i data-lucide="package" class="w-5 h-5"></i></div>
-                                        <div><h4 class="font-semibold text-slate-800 text-sm" x-text="prod.name"></h4><p class="text-xs text-slate-500" x-text="prod.category"></p></div>
-                                    </div>
-                                    <div class="text-right"><span class="inline-block bg-rose-100 text-rose-700 font-bold text-xs px-2.5 py-1 rounded-full" x-text="prod.stock + ' ' + prod.unit"></span></div>
-                                </div>
-                            </template>
+
+                    <!-- Card 2: Estimasi Laba Bersih -->
+                    <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-2xs hover:border-slate-300 hover:shadow-xs transition flex flex-col justify-between">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Estimasi Laba Bersih</p>
+                                <h3 class="text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight font-mono tabular-nums mt-1.5" x-text="formatIDR(dashboardStats.profit)"></h3>
+                            </div>
+                            <div class="w-11 h-11 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0 shadow-2xs">
+                                <i data-lucide="trending-up" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                            <span class="text-slate-500 font-medium flex items-center space-x-1">
+                                <span class="font-bold text-emerald-700 font-mono tabular-nums" x-text="dashboardStats.margin + '%'"></span>
+                                <span>margin keuntungan</span>
+                            </span>
+                            <span class="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">Profit</span>
+                        </div>
+                    </div>
+
+                    <!-- Card 3: Rata-Rata Keranjang (AOV) -->
+                    <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-2xs hover:border-slate-300 hover:shadow-xs transition flex flex-col justify-between">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Rata-rata Keranjang (AOV)</p>
+                                <h3 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight font-mono tabular-nums mt-1.5" x-text="formatIDR(dashboardStats.averageOrderValue)"></h3>
+                            </div>
+                            <div class="w-11 h-11 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0 shadow-2xs">
+                                <i data-lucide="receipt" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                            <span class="text-slate-500 font-medium flex items-center space-x-1">
+                                <i data-lucide="user-check" class="w-3.5 h-3.5 text-blue-500"></i>
+                                <span>Nilai rata-rata per transaksi</span>
+                            </span>
+                            <span class="text-[11px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md font-semibold">AOV</span>
+                        </div>
+                    </div>
+
+                    <!-- Card 4: Total Produk Terjual (Volume Penjualan) -->
+                    <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-2xs hover:border-slate-300 hover:shadow-xs transition flex flex-col justify-between">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Produk Terjual</p>
+                                <h3 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight font-mono tabular-nums mt-1.5">
+                                    <span x-text="dashboardStats.itemsSold"></span>
+                                    <span class="text-sm font-semibold text-slate-400">pcs</span>
+                                </h3>
+                            </div>
+                            <div class="w-11 h-11 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center shrink-0 shadow-2xs">
+                                <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                            <span class="text-slate-500 font-medium flex items-center space-x-1">
+                                <i data-lucide="layers" class="w-3.5 h-3.5 text-amber-600"></i>
+                                <span class="font-bold text-slate-700 font-mono tabular-nums" x-text="dashboardStats.transactions"></span>
+                                <span>struk belanja tercatat</span>
+                            </span>
+                            <span class="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md">Volume</span>
                         </div>
                     </div>
                 </div>
+
+                <!-- Core Grid: 12 Columns Layout (Khusus Laporan Penjualan) -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    
+                    <!-- Left Column (8 Columns): Transaksi Terbaru & Distribusi Pembayaran -->
+                    <div class="lg:col-span-8 space-y-6">
+                        
+                        <!-- Panel 1: Riwayat Transaksi Terbaru -->
+                        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+                            <div class="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between gap-3">
+                                <div>
+                                    <div class="flex items-center space-x-2">
+                                        <h3 class="font-bold text-slate-900 text-base">Aktivitas Transaksi Penjualan Terbaru</h3>
+                                        <span class="relative flex h-2 w-2">
+                                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                        </span>
+                                    </div>
+                                    <p class="text-xs text-slate-400 mt-0.5">Daftar transaksi penjualan kasir yang berhasil diproses</p>
+                                </div>
+                                <button type="button" 
+                                        @click="switchTab('riwayat')" 
+                                        class="text-xs font-bold app-text hover:underline flex items-center space-x-1 group shrink-0 cursor-pointer">
+                                    <span>Lihat Semua Riwayat</span>
+                                    <i data-lucide="arrow-right" class="w-3.5 h-3.5 transition group-hover:translate-x-0.5"></i>
+                                </button>
+                            </div>
+
+                            <!-- Transaction Table -->
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="bg-slate-50/70 border-b border-slate-100 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                                            <th class="py-3 px-4 sm:px-6">No. Transaksi</th>
+                                            <th class="py-3 px-3">Waktu</th>
+                                            <th class="py-3 px-3">Kasir & Pelanggan</th>
+                                            <th class="py-3 px-3">Metode</th>
+                                            <th class="py-3 px-4 text-right">Total</th>
+                                            <th class="py-3 px-4 sm:px-6 text-center">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100 text-sm">
+                                        <template x-for="trx in dashboardFilteredTransactions.slice(0, 5)" :key="trx.id">
+                                            <tr class="hover:bg-slate-50/80 transition duration-150">
+                                                <td class="py-3.5 px-4 sm:px-6">
+                                                    <span class="font-mono text-xs font-bold app-text cursor-pointer hover:underline" 
+                                                          @click="viewTransactionDetail(trx)" 
+                                                          x-text="trx.id">
+                                                    </span>
+                                                </td>
+                                                <td class="py-3.5 px-3 whitespace-nowrap">
+                                                    <span class="text-xs text-slate-500 flex items-center space-x-1 font-mono">
+                                                        <i data-lucide="clock" class="w-3 h-3 text-slate-400"></i>
+                                                        <span x-text="trx.date"></span>
+                                                    </span>
+                                                </td>
+                                                <td class="py-3.5 px-3">
+                                                    <span class="font-semibold text-slate-800 text-xs block" x-text="trx.cashier"></span>
+                                                    <span class="text-[11px] text-slate-400 block truncate max-w-[130px]" x-text="'Pelanggan: ' + (trx.customer || 'Umum')"></span>
+                                                </td>
+                                                <td class="py-3.5 px-3 whitespace-nowrap">
+                                                    <span class="text-[11px] font-semibold px-2 py-0.5 rounded-md"
+                                                          :class="trx.method === 'QRIS' ? 'bg-indigo-50 text-indigo-700' : (trx.method === 'Transfer' ? 'bg-sky-50 text-sky-700' : 'bg-slate-100 text-slate-700')"
+                                                          x-text="trx.method || 'Tunai'">
+                                                    </span>
+                                                </td>
+                                                <td class="py-3.5 px-4 text-right whitespace-nowrap">
+                                                    <span class="font-mono tabular-nums font-black text-slate-900 text-sm" x-text="formatIDR(trx.total)"></span>
+                                                </td>
+                                                <td class="py-3.5 px-4 sm:px-6 text-center whitespace-nowrap">
+                                                    <div class="flex items-center justify-center space-x-1">
+                                                        <button type="button" 
+                                                                @click="viewTransactionDetail(trx)" 
+                                                                class="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer" 
+                                                                title="Lihat Detail Transaksi">
+                                                            <i data-lucide="eye" class="w-4 h-4"></i>
+                                                        </button>
+                                                        <button type="button" 
+                                                                @click="printReceipt(trx)" 
+                                                                class="p-1.5 text-slate-400 hover:app-text hover:bg-slate-100 rounded-lg transition cursor-pointer" 
+                                                                title="Cetak Struk">
+                                                            <i data-lucide="printer" class="w-4 h-4"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </template>
+
+                                        <!-- Empty State -->
+                                        <template x-if="dashboardFilteredTransactions.length === 0">
+                                            <tr>
+                                                <td colspan="6" class="py-12 px-6 text-center">
+                                                    <div class="w-12 h-12 mx-auto rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mb-3">
+                                                        <i data-lucide="receipt" class="w-6 h-6"></i>
+                                                    </div>
+                                                    <p class="font-bold text-slate-700 text-sm">Belum Ada Transaksi pada Periode Ini</p>
+                                                    <p class="text-xs text-slate-400 mt-1 mb-4">Gunakan kasir POS untuk memproses transaksi penjualan toko.</p>
+                                                    <button type="button" 
+                                                            @click="switchTab('kasir')" 
+                                                            class="px-4 py-2 app-primary app-primary-hover text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer">
+                                                        Buka Kasir Sekarang
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Panel 2: Rekonsiliasi & Distribusi Metode Pembayaran -->
+                        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-2xs p-5 sm:p-6 space-y-4">
+                            <div>
+                                <h3 class="font-bold text-slate-900 text-base">Distribusi Metode Pembayaran Penjualan</h3>
+                                <p class="text-xs text-slate-400 mt-0.5">Perbandingan uang tunai fisik di laci kasir vs saldo masuk digital (QRIS & Transfer)</p>
+                            </div>
+
+                            <!-- Visual Multi-Segment Distribution Bar -->
+                            <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden flex">
+                                <div class="bg-emerald-500 h-full transition-all duration-500" 
+                                     :style="'width: ' + (dashboardStats.payPercent.Tunai || 0) + '%'" 
+                                     :title="'Tunai: ' + (dashboardStats.payPercent.Tunai || 0) + '%'"></div>
+                                <div class="bg-indigo-500 h-full transition-all duration-500" 
+                                     :style="'width: ' + (dashboardStats.payPercent.QRIS || 0) + '%'" 
+                                     :title="'QRIS: ' + (dashboardStats.payPercent.QRIS || 0) + '%'"></div>
+                                <div class="bg-sky-500 h-full transition-all duration-500" 
+                                     :style="'width: ' + (dashboardStats.payPercent.Transfer || 0) + '%'" 
+                                     :title="'Transfer: ' + (dashboardStats.payPercent.Transfer || 0) + '%'"></div>
+                            </div>
+
+                            <!-- 3 Mini Breakdown Cards -->
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                                <!-- Tunai -->
+                                <div class="p-3.5 rounded-xl bg-emerald-50/50 border border-emerald-100 flex items-center space-x-3">
+                                    <div class="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                                        <i data-lucide="banknote" class="w-5 h-5"></i>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex items-center justify-between text-xs">
+                                            <span class="font-bold text-emerald-900">Uang Tunai (Cash)</span>
+                                            <span class="font-bold text-emerald-700 font-mono tabular-nums" x-text="(dashboardStats.payPercent.Tunai || 0) + '%'"></span>
+                                        </div>
+                                        <p class="text-sm font-black text-slate-900 font-mono tabular-nums mt-0.5" x-text="formatIDR(dashboardStats.payMap.Tunai.total)"></p>
+                                        <p class="text-[11px] text-slate-400" x-text="dashboardStats.payMap.Tunai.count + ' Transaksi'"></p>
+                                    </div>
+                                </div>
+
+                                <!-- QRIS -->
+                                <div class="p-3.5 rounded-xl bg-indigo-50/50 border border-indigo-100 flex items-center space-x-3">
+                                    <div class="w-9 h-9 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
+                                        <i data-lucide="qr-code" class="w-5 h-5"></i>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex items-center justify-between text-xs">
+                                            <span class="font-bold text-indigo-900">QRIS Digital</span>
+                                            <span class="font-bold text-indigo-700 font-mono tabular-nums" x-text="(dashboardStats.payPercent.QRIS || 0) + '%'"></span>
+                                        </div>
+                                        <p class="text-sm font-black text-slate-900 font-mono tabular-nums mt-0.5" x-text="formatIDR(dashboardStats.payMap.QRIS.total)"></p>
+                                        <p class="text-[11px] text-slate-400" x-text="dashboardStats.payMap.QRIS.count + ' Transaksi'"></p>
+                                    </div>
+                                </div>
+
+                                <!-- Transfer Bank -->
+                                <div class="p-3.5 rounded-xl bg-sky-50/50 border border-sky-100 flex items-center space-x-3">
+                                    <div class="w-9 h-9 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center shrink-0">
+                                        <i data-lucide="credit-card" class="w-5 h-5"></i>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex items-center justify-between text-xs">
+                                            <span class="font-bold text-sky-900">Transfer Bank</span>
+                                            <span class="font-bold text-sky-700 font-mono tabular-nums" x-text="(dashboardStats.payPercent.Transfer || 0) + '%'"></span>
+                                        </div>
+                                        <p class="text-sm font-black text-slate-900 font-mono tabular-nums mt-0.5" x-text="formatIDR(dashboardStats.payMap.Transfer.total)"></p>
+                                        <p class="text-[11px] text-slate-400" x-text="dashboardStats.payMap.Transfer.count + ' Transaksi'"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column (4 Columns): Kontribusi Kategori & Top Produk Terlaris -->
+                    <div class="lg:col-span-4 space-y-6">
+                        
+                        <!-- Panel 3: Kontribusi Penjualan Per Kategori Produk -->
+                        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-2xs p-5 sm:p-6 space-y-4">
+                            <div>
+                                <h3 class="font-bold text-slate-900 text-base">Penjualan Per Kategori</h3>
+                                <p class="text-xs text-slate-400 mt-0.5">Kontribusi omzet menurut kategori barang</p>
+                            </div>
+
+                            <!-- List of Category Sales -->
+                            <div class="space-y-3">
+                                <template x-for="cat in (dashboardStats.topCategories || [])" :key="cat.name">
+                                    <div class="space-y-1.5">
+                                        <div class="flex items-center justify-between text-xs">
+                                            <div class="flex items-center space-x-2 truncate">
+                                                <span class="w-2 h-2 rounded-full app-primary"></span>
+                                                <span class="font-bold text-slate-800 truncate" x-text="cat.name"></span>
+                                                <span class="text-[11px] text-slate-400 font-medium" x-text="'(' + cat.qty + ' pcs)'"></span>
+                                            </div>
+                                            <div class="text-right shrink-0 flex items-center space-x-1.5">
+                                                <span class="font-mono tabular-nums font-bold text-slate-800" x-text="formatIDR(cat.totalRevenue)"></span>
+                                                <span class="font-mono tabular-nums text-[11px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded" x-text="cat.percent + '%'"></span>
+                                            </div>
+                                        </div>
+                                        <!-- Mini Progress Bar -->
+                                        <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                            <div class="app-primary h-full rounded-full transition-all duration-500" 
+                                                 :style="'width: ' + (cat.percent || 0) + '%'"></div>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                <!-- Empty Category State -->
+                                <template x-if="!dashboardStats.topCategories || dashboardStats.topCategories.length === 0">
+                                    <div class="py-6 text-center text-slate-400 text-xs">
+                                        <div class="w-10 h-10 mx-auto rounded-full bg-slate-100 flex items-center justify-center text-slate-300 mb-2">
+                                            <i data-lucide="tags" class="w-5 h-5"></i>
+                                        </div>
+                                        <p class="font-semibold text-slate-600">Belum Ada Penjualan Kategori</p>
+                                        <p class="text-[11px] text-slate-400 mt-0.5">Data kategori akan terisi otomatis saat transaksi kasir selesai.</p>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Panel 4: 5 Produk Paling Laris (Top Sellers) -->
+                        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-2xs p-5 sm:p-6 space-y-4">
+                            <div>
+                                <h3 class="font-bold text-slate-900 text-base">Top 5 Produk Terlaris</h3>
+                                <p class="text-xs text-slate-400 mt-0.5">Produk dengan volume penjualan tertinggi di toko</p>
+                            </div>
+
+                            <div class="space-y-2.5">
+                                <template x-for="(tp, idx) in dashboardStats.topProducts" :key="tp.name">
+                                    <div class="p-3 bg-slate-50/70 border border-slate-200/70 rounded-xl flex items-center justify-between gap-3 hover:bg-slate-100/70 transition">
+                                        <div class="flex items-center space-x-3 min-w-0 flex-1">
+                                            <!-- Rank Number Badge -->
+                                            <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shrink-0"
+                                                 :class="idx === 0 ? 'app-primary text-white shadow-2xs' : (idx === 1 ? 'bg-amber-100 text-amber-800' : 'bg-slate-200 text-slate-700')"
+                                                 x-text="idx + 1">
+                                            </div>
+                                            <!-- Mini Photo or Icon -->
+                                            <div class="w-8 h-8 rounded-lg bg-white border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
+                                                <template x-if="tp.image">
+                                                    <img :src="tp.image" :alt="tp.name" class="w-full h-full object-cover">
+                                                </template>
+                                                <template x-if="!tp.image">
+                                                    <i data-lucide="package" class="w-3.5 h-3.5 text-slate-400"></i>
+                                                </template>
+                                            </div>
+                                            <div class="min-w-0 flex-1">
+                                                <h4 class="font-bold text-slate-800 text-xs truncate" x-text="tp.name"></h4>
+                                                <p class="text-[11px] text-slate-400 truncate" x-text="tp.category"></p>
+                                            </div>
+                                        </div>
+                                        <div class="text-right shrink-0">
+                                            <span class="font-bold text-slate-900 text-xs block" x-text="tp.qty + ' terjual'"></span>
+                                            <span class="font-mono tabular-nums text-[10px] text-slate-400" x-text="formatIDR(tp.totalRevenue)"></span>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                <!-- Empty Top Sellers State -->
+                                <template x-if="dashboardStats.topProducts.length === 0">
+                                    <div class="py-8 text-center text-slate-400 text-xs">
+                                        <div class="w-10 h-10 mx-auto rounded-full bg-slate-100 flex items-center justify-center text-slate-300 mb-2">
+                                            <i data-lucide="trending-up" class="w-5 h-5"></i>
+                                        </div>
+                                        <p class="font-semibold text-slate-600">Belum Ada Data Penjualan</p>
+                                        <p class="text-[11px] text-slate-400 mt-0.5">Daftar produk terlaris akan tampil saat transaksi mulai dicatat.</p>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
             </div>
 
             <!-- 2. KASIR / POS MODULE -->
@@ -640,105 +1022,486 @@
                 </button>
             </div>
 
-            <!-- 3. PRODUK MODULE -->
+            <!-- 3. PRODUK & KATEGORI MODULE (TERPADU & RAPI) -->
             <div x-show="activeTab === 'produk'" 
                  x-transition:enter="tab-fade-slide-enter" 
                  x-transition:enter-start="tab-fade-slide-start" 
                  x-transition:enter-end="tab-fade-slide-end" 
                  class="p-4 sm:p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full pb-28 md:pb-32" x-cloak>
-                <div class="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4">
-                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
-                        <div class="relative flex-1 max-w-md">
-                            <i data-lucide="search" class="w-5 h-5 absolute left-3.5 top-3 text-slate-400"></i>
-                            <input type="text" x-model="productSearch" placeholder="Cari nama, ID, atau barcode produk..." class="w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
-                        </div>
-                        <select x-model="productFilterStock" class="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                            <option value="all">Semua Status Stok</option>
-                            <option value="low">Stok Menipis (&lt; 5)</option>
-                            <option value="empty">Stok Habis (0)</option>
-                        </select>
-                        <select x-model="productSortBy" class="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                            <option value="name">Urutkan: Nama A-Z</option>
-                            <option value="price_asc">Harga: Termurah</option>
-                            <option value="price_desc">Harga: Termahal</option>
-                            <option value="stock_asc">Stok: Paling Sedikit</option>
-                            <option value="stock_desc">Stok: Paling Banyak</option>
-                        </select>
-                    </div>
-                    <button @click="openProductModal()" class="px-4 py-2.5 app-primary app-primary-hover text-white font-semibold rounded-xl transition flex items-center justify-center space-x-2 text-sm shadow-sm shrink-0"><i data-lucide="plus" class="w-4 h-4"></i><span>Tambah Produk</span></button>
-                </div>
-                <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase">
-                                <th class="py-3.5 px-6">Produk</th><th class="py-3.5 px-6">Kategori</th><th class="py-3.5 px-6">Harga Beli</th><th class="py-3.5 px-6">Harga Jual</th><th class="py-3.5 px-6">Stok</th><th class="py-3.5 px-6 text-center">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100 text-sm">
-                            <template x-for="prod in filteredProducts" :key="prod.id + '-' + (prod.image || '').slice(-24)">
-                                <tr class="hover:bg-slate-50">
-                                    <td class="py-3 px-6">
-                                        <div class="flex items-center space-x-3">
-                                            <div class="w-12 h-12 rounded-xl bg-slate-100 overflow-hidden border border-slate-200 shrink-0 flex items-center justify-center shadow-2xs">
-                                                <template x-if="prod.image">
-                                                    <img :src="prod.image" :alt="prod.name" class="w-full h-full object-cover" loading="lazy">
-                                                </template>
-                                                <template x-if="!prod.image">
-                                                    <i data-lucide="package" class="w-5 h-5 text-slate-400"></i>
-                                                </template>
-                                            </div>
-                                            <div class="min-w-0">
-                                                <h4 class="font-semibold text-slate-800 truncate max-w-xs" x-text="prod.name"></h4>
-                                                <div class="flex items-center space-x-2 text-xs text-slate-400 mt-0.5">
-                                                    <span x-text="'ID: ' + prod.id"></span>
-                                                    <template x-if="prod.barcode">
-                                                        <span class="font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded text-[10px]" x-text="'Barcode: ' + prod.barcode"></span>
-                                                    </template>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="py-4 px-6 text-slate-600" x-text="prod.category"></td><td class="py-4 px-6 text-slate-600" x-text="formatIDR(prod.buyPrice)"></td>
-                                    <td class="py-4 px-6 font-semibold app-text" x-text="formatIDR(prod.sellPrice)"></td>
-                                    <td class="py-4 px-6 font-medium"><span :class="prod.stock < 5 ? 'text-rose-600 bg-rose-50 px-2.5 py-1 rounded-full text-xs font-bold' : 'text-slate-700'" x-text="prod.stock + ' ' + prod.unit"></span></td>
-                                    <td class="py-4 px-6 text-center">
-                                        <div class="flex items-center justify-center space-x-2">
-                                            <button @click="editProduct(prod)" class="p-1.5 bg-slate-100 hover:app-soft hover:app-text rounded-lg transition text-slate-600" title="Edit"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
-                                            <button @click="confirmDeleteProduct(prod.id)" class="p-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 rounded-lg transition text-slate-600" title="Hapus"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </template>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
 
-            <!-- 4. KATEGORI MODULE -->
-            <div x-show="activeTab === 'kategori'" 
-                 x-transition:enter="tab-fade-slide-enter" 
-                 x-transition:enter-start="tab-fade-slide-start" 
-                 x-transition:enter-end="tab-fade-slide-end" 
-                 class="p-4 sm:p-6 md:p-8 space-y-6 max-w-4xl mx-auto w-full pb-28 md:pb-32" x-cloak>
-                <div class="flex justify-between items-center">
-                    <h3 class="font-bold text-slate-800 text-lg">Kelola Kategori Produk</h3>
-                    <button @click="openCategoryModal()" class="px-4 py-2.5 app-primary app-primary-hover text-white font-semibold rounded-xl transition flex items-center space-x-2 text-sm"><i data-lucide="plus" class="w-4 h-4"></i><span>Tambah Kategori</span></button>
-                </div>
-                <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-                    <table class="w-full text-left border-collapse">
-                        <thead><tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase"><th class="py-3.5 px-6">Nama Kategori</th><th class="py-3.5 px-6 text-center">Aksi</th></tr></thead>
-                        <tbody class="divide-y divide-slate-100 text-sm">
-                            <template x-for="cat in categories" :key="cat.id">
-                                <tr class="hover:bg-slate-50">
-                                    <td class="py-4 px-6 font-semibold text-slate-800" x-text="cat.name"></td>
-                                    <td class="py-4 px-6 text-center">
-                                        <button @click="editCategory(cat)" class="p-1.5 bg-slate-100 hover:app-text rounded-lg mr-2" title="Edit"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
-                                        <button @click="confirmDeleteCategory(cat.id)" class="p-1.5 bg-slate-100 hover:text-rose-600 rounded-lg" title="Hapus"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                                    </td>
-                                </tr>
+                <!-- Header Panel: Judul, Sub-navigasi Segmen, & Tombol Aksi -->
+                <div class="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-xs space-y-5">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <div class="flex items-center space-x-2.5">
+                                <div class="w-10 h-10 rounded-2xl app-soft app-text flex items-center justify-center font-bold">
+                                    <i data-lucide="package-search" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h2 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Katalog & Kategori Produk</h2>
+                                    <p class="text-xs text-slate-500">Kelola master data barang, harga jual, stok fisik, dan kategori toko dalam satu halaman rapi.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tombol Tambah Produk / Kategori -->
+                        <div class="flex items-center space-x-2 shrink-0">
+                            <template x-if="productSubTab === 'products'">
+                                <div class="flex items-center space-x-2 w-full sm:w-auto">
+                                    <button type="button" 
+                                            @click="openCategoryModal()" 
+                                            class="flex-1 sm:flex-initial px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center justify-center space-x-1.5 transition shadow-2xs"
+                                            title="Tambah Kategori Baru">
+                                        <i data-lucide="plus" class="w-4 h-4 text-slate-500"></i>
+                                        <span>+ Kategori</span>
+                                    </button>
+                                    <button type="button" 
+                                            @click="openProductModal()" 
+                                            class="flex-1 sm:flex-initial px-4 py-2.5 app-primary app-primary-hover text-white rounded-xl text-xs font-bold flex items-center justify-center space-x-2 shadow-md transition transform active:scale-95"
+                                            title="Tambah Produk Baru">
+                                        <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                                        <span>Tambah Produk</span>
+                                    </button>
+                                </div>
                             </template>
-                        </tbody>
-                    </table>
+
+                            <template x-if="productSubTab === 'categories'">
+                                <div class="flex items-center space-x-2 w-full sm:w-auto">
+                                    <button type="button" 
+                                            @click="productSubTab = 'products'; $nextTick(() => refreshIcons())" 
+                                            class="flex-1 sm:flex-initial px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center justify-center space-x-1.5 transition shadow-2xs">
+                                        <i data-lucide="arrow-left" class="w-4 h-4 text-slate-500"></i>
+                                        <span>Ke Daftar Produk</span>
+                                    </button>
+                                    <button type="button" 
+                                            @click="openCategoryModal()" 
+                                            class="flex-1 sm:flex-initial px-4 py-2.5 app-primary app-primary-hover text-white rounded-xl text-xs font-bold flex items-center justify-center space-x-2 shadow-md transition transform active:scale-95"
+                                            title="Tambah Kategori Baru">
+                                        <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                                        <span>Tambah Kategori</span>
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Sub-Navigasi Terpadu: Segmented Control -->
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2 border-t border-slate-100">
+                        <div class="inline-flex bg-slate-100 p-1 rounded-2xl w-full sm:w-auto">
+                            <button type="button" 
+                                    @click="productSubTab = 'products'; $nextTick(() => refreshIcons())" 
+                                    :class="productSubTab === 'products' ? 'bg-white text-slate-900 shadow-sm font-bold' : 'text-slate-500 hover:text-slate-900 font-medium'" 
+                                    class="flex-1 sm:flex-initial px-4 py-2 rounded-xl text-xs flex items-center justify-center space-x-2 transition">
+                                <i data-lucide="package" class="w-4 h-4" :class="productSubTab === 'products' ? 'app-text' : 'text-slate-400'"></i>
+                                <span>Daftar Produk</span>
+                                <span class="text-[10px] px-2 py-0.5 rounded-full font-bold" 
+                                      :class="productSubTab === 'products' ? 'app-soft app-text' : 'bg-slate-200 text-slate-600'" 
+                                      x-text="products.length"></span>
+                            </button>
+
+                            <button type="button" 
+                                    @click="productSubTab = 'categories'; $nextTick(() => refreshIcons())" 
+                                    :class="productSubTab === 'categories' ? 'bg-white text-slate-900 shadow-sm font-bold' : 'text-slate-500 hover:text-slate-900 font-medium'" 
+                                    class="flex-1 sm:flex-initial px-4 py-2 rounded-xl text-xs flex items-center justify-center space-x-2 transition">
+                                <i data-lucide="tags" class="w-4 h-4" :class="productSubTab === 'categories' ? 'app-text' : 'text-slate-400'"></i>
+                                <span>Kelola Kategori</span>
+                                <span class="text-[10px] px-2 py-0.5 rounded-full font-bold" 
+                                      :class="productSubTab === 'categories' ? 'app-soft app-text' : 'bg-slate-200 text-slate-600'" 
+                                      x-text="categories.length"></span>
+                            </button>
+                        </div>
+
+                        <!-- Ringkasan Info Stok Singkat -->
+                        <div class="flex items-center space-x-4 text-xs text-slate-500 justify-end">
+                            <span class="flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                <span>Stok Aman: <strong class="text-slate-800" x-text="products.filter(p => p.stock >= 5).length"></strong></span>
+                            </span>
+                            <span class="flex items-center gap-1.5" x-show="lowStockProducts.length > 0">
+                                <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                                <span>Perlu Restock: <strong class="text-amber-700" x-text="lowStockProducts.length"></strong></span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4 KPI Metrics Ringkas & Rapi -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-xl app-soft app-text flex items-center justify-center shrink-0">
+                            <i data-lucide="package" class="w-5 h-5"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-[11px] font-medium text-slate-400 truncate">Total Produk</p>
+                            <h4 class="text-lg font-bold text-slate-800 leading-tight" x-text="products.length + ' Item'"></h4>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center space-x-3 cursor-pointer hover:border-emerald-300 transition"
+                         @click="productSubTab = 'categories'; $nextTick(() => refreshIcons())"
+                         title="Klik untuk kelola kategori">
+                        <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                            <i data-lucide="tags" class="w-5 h-5"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-[11px] font-medium text-slate-400 truncate">Kategori Aktif</p>
+                            <h4 class="text-lg font-bold text-purple-700 leading-tight" x-text="categories.length + ' Kategori'"></h4>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                            <i data-lucide="badge-dollar-sign" class="w-5 h-5"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-[11px] font-medium text-slate-400 truncate">Total Nilai Modal Stok</p>
+                            <h4 class="text-base sm:text-lg font-bold text-emerald-600 leading-tight" x-text="formatIDR(totalInventoryValue)"></h4>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center space-x-3 cursor-pointer hover:border-rose-300 transition"
+                         @click="productSubTab = 'products'; productFilterStock = 'low'; $nextTick(() => refreshIcons())"
+                         title="Klik untuk filter produk stok menipis">
+                        <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                            <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-[11px] font-medium text-slate-400 truncate">Stok Menipis (&lt;5)</p>
+                            <h4 class="text-lg font-bold text-rose-600 leading-tight" x-text="lowStockProducts.length + ' Produk'"></h4>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SUBTAB 1: DAFTAR PRODUK -->
+                <div x-show="productSubTab === 'products'" class="space-y-4">
+                    <!-- Filter Kategori Cepat (Horizontal Pill Chips) -->
+                    <div class="flex items-center space-x-1.5 overflow-x-auto no-scrollbar pb-1">
+                        <button type="button" 
+                                @click="productCategoryFilter = ''; $nextTick(() => refreshIcons())" 
+                                :class="productCategoryFilter === '' ? 'app-primary text-white shadow-xs font-bold' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200 font-medium'" 
+                                class="px-3.5 py-1.5 rounded-full text-xs shrink-0 transition flex items-center space-x-1.5">
+                            <span>Semua Kategori</span>
+                            <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold"
+                                  :class="productCategoryFilter === '' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'"
+                                  x-text="products.length"></span>
+                        </button>
+                        
+                        <template x-for="cat in categories" :key="cat.id">
+                            <button type="button" 
+                                    @click="productCategoryFilter = (productCategoryFilter === cat.name ? '' : cat.name); $nextTick(() => refreshIcons())" 
+                                    :class="productCategoryFilter === cat.name ? 'app-primary text-white shadow-xs font-bold' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200 font-medium'" 
+                                    class="px-3.5 py-1.5 rounded-full text-xs shrink-0 transition flex items-center space-x-1.5">
+                                <span x-text="cat.name"></span>
+                                <span class="text-[10px] px-1.5 py-0.2 rounded-full font-bold"
+                                      :class="productCategoryFilter === cat.name ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'"
+                                      x-text="getCategoryProductCount(cat.name)"></span>
+                            </button>
+                        </template>
+
+                        <button type="button" 
+                                @click="openCategoryModal()" 
+                                class="px-3 py-1.5 rounded-full text-xs text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 transition shrink-0 flex items-center space-x-1" 
+                                title="Tambah Kategori Baru">
+                            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                            <span>Kategori Baru</span>
+                        </button>
+                    </div>
+
+                    <!-- Toolbar Pencarian & Filter Rapi -->
+                    <div class="bg-white rounded-2xl p-3 sm:p-4 border border-slate-200/90 shadow-2xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+                        <div class="relative flex-1">
+                            <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-3 text-slate-400"></i>
+                            <input type="text" 
+                                   x-model="productSearch" 
+                                   placeholder="Cari nama barang, barcode, SKU, atau kategori..." 
+                                   class="w-full pl-10 pr-9 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs sm:text-sm font-medium">
+                            <button type="button" 
+                                    x-show="productSearch" 
+                                    @click="productSearch = ''" 
+                                    class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600">
+                                <i data-lucide="x" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+
+                        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar shrink-0">
+                            <!-- Filter Status Stok -->
+                            <select x-model="productFilterStock" 
+                                    class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 shrink-0">
+                                <option value="all">Semua Status Stok</option>
+                                <option value="available">Stok Aman (≥ 5)</option>
+                                <option value="low">Stok Menipis (&lt; 5)</option>
+                                <option value="empty">Stok Habis (0)</option>
+                            </select>
+
+                            <!-- Urutan Produk -->
+                            <select x-model="productSortBy" 
+                                    class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 shrink-0">
+                                <option value="name">Urutan: Nama A-Z</option>
+                                <option value="price_asc">Harga: Termurah</option>
+                                <option value="price_desc">Harga: Termahal</option>
+                                <option value="stock_desc">Stok: Terbanyak</option>
+                                <option value="stock_asc">Stok: Paling Sedikit</option>
+                            </select>
+
+                            <!-- Mode Tampilan: Tabel vs Grid -->
+                            <div class="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 shrink-0">
+                                <button type="button" 
+                                        @click="productViewMode = 'table'; $nextTick(() => refreshIcons())" 
+                                        :class="productViewMode === 'table' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-800'" 
+                                        class="p-1.5 rounded-lg text-xs transition" 
+                                        title="Tampilan Tabel Rapi">
+                                    <i data-lucide="list" class="w-4 h-4"></i>
+                                </button>
+                                <button type="button" 
+                                        @click="productViewMode = 'grid'; $nextTick(() => refreshIcons())" 
+                                        :class="productViewMode === 'grid' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-800'" 
+                                        class="p-1.5 rounded-lg text-xs transition" 
+                                        title="Tampilan Kartu Grid">
+                                    <i data-lucide="layout-grid" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAMPILAN 1: TABEL PRODUK RAPI & BERSIH -->
+                    <div x-show="productViewMode === 'table'" class="bg-white border border-slate-200/90 rounded-2xl shadow-xs overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-50/80 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                                        <th class="py-3 px-4 sm:px-6">Produk</th>
+                                        <th class="py-3 px-4">Kategori</th>
+                                        <th class="py-3 px-4 text-right">Harga Beli (HPP)</th>
+                                        <th class="py-3 px-4 text-right">Harga Jual & Margin</th>
+                                        <th class="py-3 px-4 text-center">Status Stok</th>
+                                        <th class="py-3 px-4 text-center">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 text-xs">
+                                    <template x-for="prod in filteredProducts" :key="prod.id + '-' + (prod.image || '').slice(-24)">
+                                        <tr class="hover:bg-slate-50/80 transition-colors group">
+                                            <!-- Info Produk -->
+                                            <td class="py-3 px-4 sm:px-6">
+                                                <div class="flex items-center space-x-3">
+                                                    <div class="w-11 h-11 rounded-xl bg-slate-100 overflow-hidden border border-slate-200 shrink-0 flex items-center justify-center relative shadow-2xs">
+                                                        <template x-if="prod.image">
+                                                            <img :src="prod.image" :alt="prod.name" class="w-full h-full object-cover group-hover:scale-105 transition duration-200" loading="lazy">
+                                                        </template>
+                                                        <template x-if="!prod.image">
+                                                            <i data-lucide="package" class="w-5 h-5 text-slate-400"></i>
+                                                        </template>
+                                                    </div>
+                                                    <div class="min-w-0">
+                                                        <h4 class="font-bold text-slate-800 text-sm truncate max-w-xs group-hover:text-emerald-700 transition" x-text="prod.name"></h4>
+                                                        <div class="flex items-center space-x-2 text-[11px] text-slate-400 mt-0.5">
+                                                            <span class="font-mono text-slate-500" x-text="'ID: ' + prod.id"></span>
+                                                            <template x-if="prod.barcode">
+                                                                <span class="font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded text-[10px]" x-text="prod.barcode"></span>
+                                                            </template>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            <!-- Kategori -->
+                                            <td class="py-3 px-4">
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200/80" 
+                                                      x-text="prod.category || 'Umum'">
+                                                </span>
+                                            </td>
+
+                                            <!-- Harga Beli -->
+                                            <td class="py-3 px-4 text-right font-medium text-slate-600" x-text="formatIDR(prod.buyPrice)"></td>
+
+                                            <!-- Harga Jual & Margin -->
+                                            <td class="py-3 px-4 text-right">
+                                                <div class="font-bold text-slate-900 text-sm" x-text="formatIDR(prod.sellPrice)"></div>
+                                                <template x-if="prod.sellPrice > prod.buyPrice">
+                                                    <span class="text-[10px] font-semibold text-emerald-600" 
+                                                          x-text="'+' + formatIDR(prod.sellPrice - prod.buyPrice) + ' (' + (prod.buyPrice > 0 ? Math.round(((prod.sellPrice - prod.buyPrice) / prod.buyPrice) * 100) : 0) + '%)'">
+                                                    </span>
+                                                </template>
+                                            </td>
+
+                                            <!-- Status Stok -->
+                                            <td class="py-3 px-4 text-center">
+                                                <span class="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-xs font-bold" 
+                                                      :class="prod.stock <= 0 ? 'bg-rose-50 text-rose-700 border border-rose-200' : (prod.stock < 5 ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200')">
+                                                    <span class="w-1.5 h-1.5 rounded-full" :class="prod.stock <= 0 ? 'bg-rose-500' : (prod.stock < 5 ? 'bg-amber-500' : 'bg-emerald-500')"></span>
+                                                    <span x-text="prod.stock <= 0 ? 'Habis' : (prod.stock + ' ' + (prod.unit || 'Pcs'))"></span>
+                                                </span>
+                                            </td>
+
+                                            <!-- Aksi -->
+                                            <td class="py-3 px-4 text-center">
+                                                <div class="flex items-center justify-center space-x-1.5">
+                                                    <button type="button" 
+                                                            @click="editProduct(prod)" 
+                                                            class="p-1.5 bg-slate-100 hover:app-soft hover:app-text rounded-lg transition text-slate-600 shadow-2xs" 
+                                                            title="Edit Produk">
+                                                        <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                                                    </button>
+                                                    <button type="button" 
+                                                            @click="confirmDeleteProduct(prod.id)" 
+                                                            class="p-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 rounded-lg transition text-slate-600 shadow-2xs" 
+                                                            title="Hapus Produk">
+                                                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Empty State Table -->
+                        <div x-show="filteredProducts.length === 0" class="py-12 text-center space-y-3">
+                            <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
+                                <i data-lucide="package-x" class="w-6 h-6"></i>
+                            </div>
+                            <p class="text-sm font-bold text-slate-700">Tidak ada produk ditemukan</p>
+                            <p class="text-xs text-slate-400 max-w-sm mx-auto">Coba sesuaikan kata kunci pencarian atau ubah filter kategori dan status stok.</p>
+                            <button type="button" 
+                                    @click="productSearch = ''; productCategoryFilter = ''; productFilterStock = 'all'" 
+                                    class="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition">
+                                Reset Semua Filter
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- TAMPILAN 2: GRID KARTU PRODUK CANTIK & BERSIH -->
+                    <div x-show="productViewMode === 'grid'" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 sm:gap-4">
+                        <template x-for="prod in filteredProducts" :key="prod.id + '-' + (prod.image || '').slice(-24)">
+                            <div class="bg-white border border-slate-200/90 rounded-2xl p-3.5 shadow-2xs flex flex-col justify-between hover:border-emerald-300 hover:shadow-md transition group">
+                                <div>
+                                    <!-- Foto Produk -->
+                                    <div class="w-full h-32 rounded-xl bg-slate-100 overflow-hidden relative mb-2.5 flex items-center justify-center border border-slate-100">
+                                        <template x-if="prod.image">
+                                            <img :src="prod.image" :alt="prod.name" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" loading="lazy">
+                                        </template>
+                                        <template x-if="!prod.image">
+                                            <i data-lucide="package" class="w-8 h-8 text-slate-300"></i>
+                                        </template>
+
+                                        <!-- Badge Stok di Foto -->
+                                        <span class="absolute bottom-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-md backdrop-blur-md" 
+                                              :class="prod.stock <= 0 ? 'bg-rose-500 text-white' : (prod.stock < 5 ? 'bg-amber-500 text-white' : 'bg-slate-900/70 text-white')" 
+                                              x-text="prod.stock <= 0 ? 'Habis' : 'Stok: ' + prod.stock + ' ' + (prod.unit || '')">
+                                        </span>
+                                    </div>
+
+                                    <!-- Label Kategori -->
+                                    <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block" x-text="prod.category || 'Umum'"></span>
+                                    <h4 class="font-bold text-slate-800 text-sm line-clamp-2 leading-snug mt-0.5" x-text="prod.name"></h4>
+                                </div>
+
+                                <div class="mt-3 pt-2.5 border-t border-slate-100 space-y-2">
+                                    <div class="flex items-baseline justify-between">
+                                        <span class="text-[10px] text-slate-400">Jual:</span>
+                                        <span class="font-black app-text text-sm" x-text="formatIDR(prod.sellPrice)"></span>
+                                    </div>
+                                    <div class="flex items-center justify-between text-[11px] text-slate-500">
+                                        <span>Beli: <span x-text="formatIDR(prod.buyPrice)"></span></span>
+                                        <span class="text-[10px] font-bold text-emerald-600" x-text="'+' + formatIDR(prod.sellPrice - prod.buyPrice)"></span>
+                                    </div>
+
+                                    <!-- Tombol Aksi Cepat -->
+                                    <div class="flex items-center space-x-1.5 pt-1">
+                                        <button type="button" 
+                                                @click="editProduct(prod)" 
+                                                class="flex-1 py-1.5 bg-slate-100 hover:app-soft hover:app-text text-slate-700 text-xs font-semibold rounded-lg transition flex items-center justify-center space-x-1">
+                                            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                                            <span>Edit</span>
+                                        </button>
+                                        <button type="button" 
+                                                @click="confirmDeleteProduct(prod.id)" 
+                                                class="p-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-500 rounded-lg transition" 
+                                                title="Hapus">
+                                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- SUBTAB 2: KELOLA KATEGORI (TERINTEGRASI RAPI) -->
+                <div x-show="productSubTab === 'categories'" class="space-y-4">
+                    <!-- Category Toolbar -->
+                    <div class="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                        <div class="relative flex-1 max-w-md">
+                            <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-3 text-slate-400"></i>
+                            <input type="text" 
+                                   x-model="categorySearch" 
+                                   placeholder="Cari kategori produk..." 
+                                   class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs sm:text-sm font-medium">
+                        </div>
+
+                        <div class="flex items-center space-x-2 justify-end">
+                            <span class="text-xs text-slate-500" x-text="filteredCategories.length + ' kategori terdaftar'"></span>
+                            <button type="button" 
+                                    @click="openCategoryModal()" 
+                                    class="px-4 py-2 app-primary app-primary-hover text-white text-xs font-bold rounded-xl shadow-sm flex items-center space-x-1.5 transition">
+                                <i data-lucide="plus" class="w-4 h-4"></i>
+                                <span>Tambah Kategori Baru</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Category Cards Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
+                        <template x-for="cat in filteredCategories" :key="cat.id">
+                            <div class="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs flex items-center justify-between gap-3 hover:border-emerald-300 transition group">
+                                <div class="flex items-center space-x-3 min-w-0">
+                                    <div class="w-10 h-10 rounded-xl app-soft app-text flex items-center justify-center font-bold shrink-0">
+                                        <i data-lucide="tag" class="w-4 h-4"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <h4 class="font-bold text-slate-800 text-sm truncate" x-text="cat.name"></h4>
+                                        <p class="text-xs text-slate-400 mt-0.5" x-text="getCategoryProductCount(cat.name) + ' produk terkait'"></p>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center space-x-1.5 shrink-0">
+                                    <button type="button" 
+                                            @click="productCategoryFilter = cat.name; productSubTab = 'products'; $nextTick(() => refreshIcons())" 
+                                            class="px-2.5 py-1.5 bg-slate-100 hover:app-soft hover:app-text text-slate-700 rounded-lg text-xs font-semibold flex items-center space-x-1 transition shadow-2xs" 
+                                            title="Lihat produk di kategori ini">
+                                        <span>Lihat</span>
+                                        <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                    <button type="button" 
+                                            @click="editCategory(cat)" 
+                                            class="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition" 
+                                            title="Edit Nama Kategori">
+                                        <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                    <button type="button" 
+                                            @click="confirmDeleteCategory(cat.id)" 
+                                            class="p-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-500 rounded-lg transition" 
+                                            title="Hapus Kategori">
+                                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Empty State Kategori -->
+                    <div x-show="filteredCategories.length === 0" class="bg-white border border-slate-200/90 rounded-2xl py-12 text-center space-y-3">
+                        <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
+                            <i data-lucide="tags" class="w-6 h-6"></i>
+                        </div>
+                        <p class="text-sm font-bold text-slate-700">Tidak ada kategori ditemukan</p>
+                        <p class="text-xs text-slate-400 max-w-sm mx-auto">Buat kelompok kategori baru untuk memudahkan pengorganisasian produk kasir.</p>
+                        <button type="button" 
+                                @click="openCategoryModal()" 
+                                class="px-4 py-2 app-primary app-primary-hover text-white text-xs font-bold rounded-xl transition">
+                            Tambah Kategori Sekarang
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -1205,15 +1968,22 @@
                     </form>
                     
                     <div class="pt-6 border-t border-slate-100 space-y-4">
-                        <div>
-                            <h4 class="font-bold text-slate-800 text-base">Warna Tampilan Aplikasi</h4>
-                            <p class="text-xs text-slate-400 mt-1">Pilih warna utama aplikasi sesuai keinginan.</p>
+                        <div class="flex items-center justify-between flex-wrap gap-2">
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-base">Warna Tampilan Aplikasi</h4>
+                                <p class="text-xs text-slate-400 mt-0.5">Pilih tema warna aplikasi. Tersedia warna Kuning Khas FEB kebanggaan.</p>
+                            </div>
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold app-soft app-text border border-amber-200/80">
+                                <span>Tema Aktif:</span>
+                                <strong x-text="themeOptions.find(x => x.key === settings.theme)?.name || 'Kuning Khas FEB'"></strong>
+                            </span>
                         </div>
                         <div class="flex flex-wrap gap-3">
                             <template x-for="theme in themeOptions" :key="theme.key">
                                 <button type="button" @click="setTheme(theme.key)"
-                                    class="w-12 h-12 rounded-xl border-4 transition"
-                                    :style="'background:' + theme.color + ';border-color:' + (settings.theme === theme.key ? '#0f172a' : 'transparent')"
+                                    class="w-12 h-12 rounded-xl transition-all duration-150 cursor-pointer shadow-2xs hover:scale-105 active:scale-95 border-2"
+                                    :class="settings.theme === theme.key ? 'border-slate-900 ring-2 ring-slate-900/30 scale-105' : 'border-transparent hover:border-slate-300 opacity-90 hover:opacity-100'"
+                                    :style="'background:' + theme.color"
                                     :title="theme.name"
                                     :aria-label="'Pilih warna ' + theme.name"></button>
                             </template>
@@ -1506,7 +2276,7 @@
             <div class="pointer-events-auto bg-white/92 backdrop-blur-2xl border border-slate-200/90 shadow-2xl shadow-slate-900/15 rounded-2xl sm:rounded-full p-1.5 flex items-center gap-1 sm:gap-1.5 max-w-full overflow-x-auto no-scrollbar ring-1 ring-black/5 transition-all duration-300">
                 <template x-for="tab in filteredTabs" :key="tab.id">
                     <button @click="switchTab(tab.id)" 
-                            :class="activeTab === tab.id ? 'app-primary text-white shadow-md shadow-emerald-600/30 font-semibold active-dock-item' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/80'" 
+                            :class="activeTab === tab.id ? 'app-primary text-white shadow-md shadow-black/15 font-semibold active-dock-item' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/80'" 
                             class="relative group flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-full text-xs font-medium transition-all duration-200 ease-out transform active:scale-95 shrink-0">
                         
                         <i :data-lucide="tab.icon" class="w-4 h-4 transition-transform duration-200 group-hover:scale-110"></i>
@@ -1573,7 +2343,20 @@
                     <div><label class="block text-xs font-semibold text-slate-600 mb-1">Barcode / SKU (Opsional)</label><input type="text" x-model="productForm.barcode" placeholder="Ketik / scan barcode" class="w-full border rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"></div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
-                    <div><label class="block text-xs font-semibold text-slate-600 mb-1">Kategori *</label><select x-model="productForm.category" class="w-full border rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"><option value="">Pilih Kategori</option><template x-for="cat in categories" :key="cat.id"><option :value="cat.name" x-text="cat.name"></option></template></select></div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-semibold text-slate-600">Kategori *</label>
+                            <button type="button" @click="openCategoryModal()" class="text-[11px] app-text font-semibold hover:underline flex items-center gap-0.5">
+                                <i data-lucide="plus" class="w-3 h-3"></i><span>Baru</span>
+                            </button>
+                        </div>
+                        <select x-model="productForm.category" class="w-full border rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+                            <option value="">Pilih Kategori</option>
+                            <template x-for="cat in categories" :key="cat.id">
+                                <option :value="cat.name" x-text="cat.name"></option>
+                            </template>
+                        </select>
+                    </div>
                     <div><label class="block text-xs font-semibold text-slate-600 mb-1">Satuan</label><input type="text" x-model="productForm.unit" placeholder="Pcs/Kg/Pack" class="w-full border rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"></div>
                 </div>
                 <div class="grid grid-cols-3 gap-3">
@@ -2077,7 +2860,93 @@
         </div>
     </div>
 
+    <!-- Pop-up Sukses Transaksi dengan Animasi & Confetti -->
+    <div x-show="isSuccessModalOpen" 
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 scale-95"
+         x-transition:enter-end="opacity-100 scale-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100 scale-100"
+         x-transition:leave-end="opacity-0 scale-95"
+         class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4" 
+         @keydown.escape.window="isSuccessModalOpen = false"
+         x-cloak>
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl space-y-5 text-center relative overflow-hidden border border-slate-100" 
+             @click.away="isSuccessModalOpen = false">
+            
+            <!-- Glow Accent -->
+            <div class="absolute -top-14 -right-14 w-36 h-36 rounded-full app-soft opacity-70 pointer-events-none blur-2xl"></div>
+            <div class="absolute -bottom-14 -left-14 w-36 h-36 rounded-full bg-emerald-100/60 pointer-events-none blur-2xl"></div>
 
+            <!-- Animated Badge -->
+            <div class="relative mx-auto w-20 h-20 flex items-center justify-center">
+                <div class="absolute inset-0 rounded-full app-soft animate-ping opacity-40"></div>
+                <div class="w-20 h-20 rounded-full app-soft border-4 border-white shadow-md flex items-center justify-center text-3xl font-bold app-text animate-gentle-fade">
+                    <i data-lucide="check-circle-2" class="w-10 h-10 app-text"></i>
+                </div>
+            </div>
+
+            <!-- Header -->
+            <div class="space-y-1">
+                <h3 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Transaksi Berhasil!</h3>
+                <p class="text-xs text-slate-500 font-mono" x-text="lastCompletedTx?.id || ''"></p>
+            </div>
+
+            <!-- Rincian Nota & Kembalian -->
+            <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-2 text-left text-xs">
+                <div class="flex justify-between items-center text-slate-500">
+                    <span>Pelanggan</span>
+                    <span class="font-semibold text-slate-800" x-text="lastCompletedTx?.customer || 'Umum'"></span>
+                </div>
+                <div class="flex justify-between items-center text-slate-500">
+                    <span>Metode Pembayaran</span>
+                    <span class="font-bold text-slate-800" x-text="lastCompletedTx?.method || 'Tunai'"></span>
+                </div>
+                <div class="flex justify-between items-center text-slate-500">
+                    <span>Total Belanja</span>
+                    <span class="font-bold text-slate-900 text-sm" x-text="formatIDR(lastCompletedTx?.total || 0)"></span>
+                </div>
+                <template x-if="lastCompletedTx?.method === 'Tunai'">
+                    <div class="pt-2 border-t border-dashed border-slate-200 space-y-1.5">
+                        <div class="flex justify-between items-center text-slate-500">
+                            <span>Uang Diterima</span>
+                            <span class="font-semibold text-slate-700" x-text="formatIDR(lastCompletedTx?.cash || 0)"></span>
+                        </div>
+                        <div class="flex justify-between items-center font-bold text-sm bg-amber-50/70 p-2 rounded-xl border border-amber-200/60">
+                            <span class="text-slate-800">Uang Kembalian:</span>
+                            <span class="app-text text-base font-extrabold" x-text="formatIDR(lastCompletedTx?.change || 0)"></span>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="grid grid-cols-2 gap-2.5 pt-1">
+                <button type="button" 
+                        @click="printReceipt(lastCompletedTx)"
+                        class="py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs flex items-center justify-center gap-1.5 transition active:scale-95 shadow-2xs cursor-pointer">
+                    <i data-lucide="printer" class="w-4 h-4 text-slate-600"></i>
+                    <span>Cetak Struk</span>
+                </button>
+                <button type="button" 
+                        @click="shareReceiptWA(lastCompletedTx)"
+                        class="py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold rounded-xl text-xs flex items-center justify-center gap-1.5 transition active:scale-95 border border-emerald-200 cursor-pointer">
+                    <i data-lucide="message-circle" class="w-4 h-4 text-emerald-600"></i>
+                    <span>Kirim WA</span>
+                </button>
+            </div>
+
+            <button type="button" 
+                    @click="isSuccessModalOpen = false"
+                    class="w-full py-3.5 app-primary app-primary-hover text-white font-bold rounded-xl text-sm shadow-md transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer">
+                <span>Lanjut Transaksi Baru</span>
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Canvas Confetti Overlay -->
+    <canvas id="confetti-canvas" class="fixed inset-0 pointer-events-none z-[80] w-full h-full" style="display: none;"></canvas>
 
     <!-- Confirm Modal -->
     <div x-show="confirmModal.show" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" x-cloak>
@@ -2126,22 +2995,23 @@
                     { id: 'dashboard', name: 'Dashboard', icon: 'layout-dashboard', roles: ['admin','kasir'] },
                     { id: 'kasir', name: 'Kasir / POS', icon: 'shopping-cart', roles: ['admin','kasir'] },
                     { id: 'produk', name: 'Produk', icon: 'package', roles: ['admin'] },
-                    { id: 'kategori', name: 'Kategori', icon: 'tags', roles: ['admin'] },
                     { id: 'riwayat', name: 'Riwayat Transaksi', icon: 'history', roles: ['admin','kasir'] },
                     { id: 'laporan', name: 'Laporan', icon: 'bar-chart-3', roles: ['admin'] },
                     { id: 'stok', name: 'Stok', icon: 'boxes', roles: ['admin'] },
                     { id: 'pengaturan', name: 'Pengaturan', icon: 'settings', roles: ['admin'] }
                 ],
                 users: [{ username: 'admin', password: 'admin', name: 'Administrator', role: 'admin', profileImage: '' }, { username: 'kasir', password: 'kasir', name: 'Kasir Utama', role: 'kasir', profileImage: '' }],
-                settings: { storeName: 'KOPMA Store', address: 'Gedung Koperasi Mahasiswa', phone: '081234567890', receiptNote: 'Terima kasih telah berbelanja di KOPMA.', theme: 'emerald', soundEnabled: true, bankAccount: 'BCA 1234567890 a/n KOPMA', updatedAt: 0 },
-                settingsForm: { storeName: 'KOPMA Store', address: 'Gedung Koperasi Mahasiswa', phone: '081234567890', receiptNote: 'Terima kasih telah berbelanja di KOPMA.', theme: 'emerald', soundEnabled: true, bankAccount: 'BCA 1234567890 a/n KOPMA' },
+                settings: { storeName: 'KOPMA Store', address: 'Gedung Koperasi Mahasiswa', phone: '081234567890', receiptNote: 'Terima kasih telah berbelanja di KOPMA.', theme: 'feb', soundEnabled: true, bankAccount: 'BCA 1234567890 a/n KOPMA', updatedAt: 0 },
+                settingsForm: { storeName: 'KOPMA Store', address: 'Gedung Koperasi Mahasiswa', phone: '081234567890', receiptNote: 'Terima kasih telah berbelanja di KOPMA.', theme: 'feb', soundEnabled: true, bankAccount: 'BCA 1234567890 a/n KOPMA' },
                 themeOptions: [
-                    {key:'emerald', name:'Hijau', color:'#059669', dark:'#047857', soft:'#ecfdf5'},
-                    {key:'blue', name:'Biru', color:'#2563eb', dark:'#1d4ed8', soft:'#eff6ff'},
-                    {key:'purple', name:'Ungu', color:'#7c3aed', dark:'#6d28d9', soft:'#f5f3ff'},
-                    {key:'orange', name:'Oranye', color:'#ea580c', dark:'#c2410c', soft:'#fff7ed'},
-                    {key:'rose', name:'Merah Muda', color:'#e11d48', dark:'#be123c', soft:'#fff1f2'},
-                    {key:'slate', name:'Abu-abu', color:'#475569', dark:'#334155', soft:'#f8fafc'}
+                    {key:'feb', name:'Kuning Khas FEB', color:'#eab308', dark:'#ca8a04', soft:'#fefce8', textColor:'#a16207', contrast:'#1e293b'},
+                    {key:'feb-gold', name:'Kuning Emas FEB', color:'#d97706', dark:'#b45309', soft:'#fffbeb', textColor:'#92400e', contrast:'#ffffff'},
+                    {key:'emerald', name:'Hijau Kopma', color:'#059669', dark:'#047857', soft:'#ecfdf5', textColor:'#059669', contrast:'#ffffff'},
+                    {key:'blue', name:'Biru', color:'#2563eb', dark:'#1d4ed8', soft:'#eff6ff', textColor:'#2563eb', contrast:'#ffffff'},
+                    {key:'purple', name:'Ungu', color:'#7c3aed', dark:'#6d28d9', soft:'#f5f3ff', textColor:'#7c3aed', contrast:'#ffffff'},
+                    {key:'orange', name:'Oranye', color:'#ea580c', dark:'#c2410c', soft:'#fff7ed', textColor:'#ea580c', contrast:'#ffffff'},
+                    {key:'rose', name:'Merah Muda', color:'#e11d48', dark:'#be123c', soft:'#fff1f2', textColor:'#e11d48', contrast:'#ffffff'},
+                    {key:'slate', name:'Abu-abu', color:'#475569', dark:'#334155', soft:'#f8fafc', textColor:'#475569', contrast:'#ffffff'}
                 ],
                 categories: [], products: [], transactions: [], dailyArchives: [], permanentHistory: [], stockLogs: [], deletedStockLogIds: [],
                 historySubTab: 'active', archiveSearch: '', isArchiveDetailModalOpen: false, selectedArchive: null,
@@ -2151,9 +3021,11 @@
                 driveUser: null, driveToken: null, driveFiles: [], isDriveLoading: false, isDriveUploading: false,
                 isDriveSyncing: false, lastDriveSyncTime: '', lastDriveModifiedTime: '', _driveSyncTimeout: null,
                 posSearch: '', posCategoryFilter: '', posViewMode: 'grid', cart: [], showPosCart: false, posDiscount: 0, posCash: 0, posPaymentMethod: 'Tunai', posCustomerName: '',
+                dashboardPeriod: 'today',
+                productSubTab: 'products', productCategoryFilter: '', productViewMode: 'table', categorySearch: '',
                 productSearch: '', productFilterStock: 'all', productSortBy: 'name', historySearch: '', reportFilter: 'all',
                 toast: { show: false, message: '' }, confirmModal: { show: false, title: '', message: '', onConfirm: () => {} },
-                currentDateStr: '', currentTimeStr: '', receiptData: null,
+                currentDateStr: '', currentTimeStr: '', receiptData: null, isSuccessModalOpen: false, lastCompletedTx: null,
                 isProductModalOpen: false, isEditMode: false, productForm: {}, productImageRefresh: 0,
                 isCategoryModalOpen: false, isCategoryEditMode: false, categoryForm: {},
                 isStockModalOpen: false, stockForm: { productId: '', type: 'IN', qty: 1, note: '' },
@@ -2257,9 +3129,14 @@
                 },
 
                 switchTab(tabId) {
-                    if (this.activeTab === tabId) return;
-                    this.activeTab = tabId;
-                    if (tabId === 'pengaturan') {
+                    if (tabId === 'kategori') {
+                        this.activeTab = 'produk';
+                        this.productSubTab = 'categories';
+                    } else {
+                        if (this.activeTab === tabId) return;
+                        this.activeTab = tabId;
+                    }
+                    if (this.activeTab === 'pengaturan') {
                         this.settingsForm = { ...this.settings };
                     }
                     window.scrollTo({ top: 0, behavior: 'instant' });
@@ -2268,6 +3145,10 @@
                 },
 
                 init() {
+                    if (this.activeTab === 'kategori') {
+                        this.activeTab = 'produk';
+                        this.productSubTab = 'categories';
+                    }
                     this.updateDateTime(); 
                     this.loadLocalStorage();
                     this.settingsForm = { ...this.settings };
@@ -2276,7 +3157,7 @@
                         this.updateDateTime();
                         this.checkAutoDailyReset();
                     }, 10000);
-                    if (!this.settings.theme) this.settings.theme = 'emerald';
+                    if (!this.settings.theme || this.settings.theme === 'emerald') this.settings.theme = 'feb';
                     this.applyTheme();
                     // Cek sesi login aktif dari sessionStorage (login wajib dengan username dan password)
                     try {
@@ -2376,8 +3257,13 @@
                     this.$watch('isProfileModalOpen', () => this.refreshIcons());
                     this.$watch('isQrisModalOpen', () => this.refreshIcons());
                     this.$watch('isExportModalOpen', () => this.refreshIcons());
+                    this.$watch('isSuccessModalOpen', () => this.refreshIcons());
                     this.$watch('showPosCart', () => this.refreshIcons());
                     this.$watch('posViewMode', () => this.refreshIcons());
+                    this.$watch('productSubTab', () => this.refreshIcons());
+                    this.$watch('productViewMode', () => this.refreshIcons());
+                    this.$watch('productCategoryFilter', () => this.refreshIcons());
+                    this.$watch('dashboardPeriod', () => this.refreshIcons());
                     this.refreshIcons();
                 },
 
@@ -3067,6 +3953,121 @@
                     if (this.posPaymentMethod !== 'Tunai') return 0;
                     return (this.posCash || 0) - this.cartTotal; 
                 },
+                get dashboardFilteredTransactions() {
+                    const period = this.dashboardPeriod || 'today';
+                    const now = new Date();
+                    const todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+                    const txs = this.transactions || [];
+                    if (period === 'today') {
+                        return txs.filter(t => (t.date || '').startsWith(todayStr));
+                    } else if (period === '7days') {
+                        const sevenDaysAgo = new Date();
+                        sevenDaysAgo.setDate(now.getDate() - 7);
+                        return txs.filter(t => {
+                            const d = new Date((t.date || '').replace(' ', 'T'));
+                            return !isNaN(d.getTime()) ? d >= sevenDaysAgo : true;
+                        });
+                    } else if (period === 'month') {
+                        const currentMonthStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+                        return txs.filter(t => (t.date || '').startsWith(currentMonthStr));
+                    }
+                    return txs;
+                },
+                get dashboardStats() {
+                    const trxs = this.dashboardFilteredTransactions;
+                    const sales = trxs.reduce((s, t) => s + (Number(t.total) || 0), 0);
+                    const itemsSold = trxs.reduce((s, t) => s + (t.items || []).reduce((sum, i) => sum + (Number(i.qty) || 0), 0), 0);
+                    const profit = trxs.reduce((s, t) => {
+                        const totalCost = (t.items || []).reduce((c, item) => c + ((Number(item.buyPrice) || 0) * (Number(item.qty) || 1)), 0);
+                        return s + Math.max(0, (Number(t.total) || 0) - totalCost);
+                    }, 0);
+                    const margin = sales > 0 ? ((profit / sales) * 100).toFixed(1) : '0';
+                    const averageOrderValue = trxs.length > 0 ? Math.round(sales / trxs.length) : 0;
+
+                    const payMap = {
+                        Tunai: { total: 0, count: 0 },
+                        QRIS: { total: 0, count: 0 },
+                        Transfer: { total: 0, count: 0 }
+                    };
+                    trxs.forEach(t => {
+                        const m = (t.method || 'Tunai').trim();
+                        const key = m === 'QRIS' ? 'QRIS' : (m.toLowerCase().includes('transfer') || m.toLowerCase().includes('bank') ? 'Transfer' : 'Tunai');
+                        if (!payMap[key]) payMap[key] = { total: 0, count: 0 };
+                        payMap[key].total += (Number(t.total) || 0);
+                        payMap[key].count += 1;
+                    });
+
+                    const totalPaySum = payMap.Tunai.total + payMap.QRIS.total + payMap.Transfer.total;
+                    const payPercent = {
+                        Tunai: totalPaySum > 0 ? Math.round((payMap.Tunai.total / totalPaySum) * 100) : 0,
+                        QRIS: totalPaySum > 0 ? Math.round((payMap.QRIS.total / totalPaySum) * 100) : 0,
+                        Transfer: totalPaySum > 0 ? Math.round((payMap.Transfer.total / totalPaySum) * 100) : 0,
+                    };
+
+                    const catSalesMap = {};
+                    const prodSalesMap = {};
+                    trxs.forEach(t => {
+                        (t.items || []).forEach(item => {
+                            if (!item.name) return;
+                            const cat = (item.category || '').trim() || 'Umum';
+                            if (!catSalesMap[cat]) {
+                                catSalesMap[cat] = { name: cat, qty: 0, totalRevenue: 0 };
+                            }
+                            catSalesMap[cat].qty += (Number(item.qty) || 0);
+                            catSalesMap[cat].totalRevenue += ((Number(item.sellPrice) || 0) * (Number(item.qty) || 0));
+
+                            if (!prodSalesMap[item.name]) {
+                                prodSalesMap[item.name] = { 
+                                    name: item.name, 
+                                    qty: 0, 
+                                    totalRevenue: 0, 
+                                    category: cat,
+                                    image: item.image || ''
+                                };
+                            }
+                            prodSalesMap[item.name].qty += (Number(item.qty) || 0);
+                            prodSalesMap[item.name].totalRevenue += ((Number(item.sellPrice) || 0) * (Number(item.qty) || 0));
+                            if (!prodSalesMap[item.name].image && item.image) {
+                                prodSalesMap[item.name].image = item.image;
+                            }
+                        });
+                    });
+
+                    const totalCatRevenue = Object.values(catSalesMap).reduce((s, c) => s + c.totalRevenue, 0);
+                    const topCategories = Object.values(catSalesMap)
+                        .sort((a, b) => b.totalRevenue - a.totalRevenue)
+                        .slice(0, 5)
+                        .map(c => ({
+                            ...c,
+                            percent: totalCatRevenue > 0 ? Math.round((c.totalRevenue / totalCatRevenue) * 100) : 0
+                        }));
+
+                    const topProducts = Object.values(prodSalesMap)
+                        .sort((a, b) => b.qty - a.qty)
+                        .slice(0, 5)
+                        .map(tp => {
+                            const foundProd = (this.products || []).find(p => p.name === tp.name);
+                            return {
+                                ...tp,
+                                category: tp.category || foundProd?.category || 'Umum',
+                                image: tp.image || foundProd?.image || '',
+                                currentStock: foundProd ? foundProd.stock : null
+                            };
+                        });
+
+                    return {
+                        sales,
+                        profit,
+                        margin,
+                        transactions: trxs.length,
+                        itemsSold,
+                        averageOrderValue,
+                        payMap,
+                        payPercent,
+                        topProducts,
+                        topCategories
+                    };
+                },
                 get stats() { 
                     const now = new Date();
                     const todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
@@ -3120,12 +4121,110 @@
                     if(!this.permanentHistory.some(p => p.id === newTrx.id)) { this.permanentHistory.push(newTrx); this.syncToGas('permanentHistory', newTrx.id, newTrx); }
                     
                     this.receiptData = newTrx; 
+                    this.lastCompletedTx = newTrx;
                     this.saveLocalStorage(); 
                     this.pushFullStateToServer();
                     this.playSound('success');
-                    this.showToast('Transaksi berhasil disimpan!');
-                    setTimeout(() => window.print(), 300); 
                     this.clearCart();
+                    this.isSuccessModalOpen = true;
+                    this.triggerSuccessCelebration();
+                    this.showToast('Transaksi berhasil diselesaikan!');
+                    this.$nextTick(() => this.refreshIcons());
+                },
+
+                printReceipt(trx) {
+                    const t = trx || this.receiptData || this.lastCompletedTx || this.selectedTrx;
+                    if (!t) return this.showToast('Data transaksi tidak ditemukan.');
+                    this.receiptData = t;
+                    this.$nextTick(() => {
+                        setTimeout(() => window.print(), 100);
+                    });
+                },
+
+                _confettiRaf: null,
+                triggerSuccessCelebration() {
+                    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                        return;
+                    }
+                    const canvas = document.getElementById('confetti-canvas');
+                    if (!canvas) return;
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) return;
+
+                    if (this._confettiRaf) {
+                        cancelAnimationFrame(this._confettiRaf);
+                        this._confettiRaf = null;
+                    }
+
+                    const width = window.innerWidth;
+                    const height = window.innerHeight;
+                    canvas.width = width;
+                    canvas.height = height;
+                    canvas.style.display = 'block';
+
+                    const colors = ['#eab308', '#f59e0b', '#10b981', '#06b6d4', '#8b5cf6', '#f43f5e', '#ffffff'];
+                    const particleCount = Math.min(65, Math.floor(width / 16));
+                    const particles = [];
+
+                    for (let i = 0; i < particleCount; i++) {
+                        particles.push({
+                            x: width * 0.5 + (Math.random() - 0.5) * 140,
+                            y: height * 0.4 + (Math.random() - 0.5) * 60,
+                            vx: (Math.random() - 0.5) * 14,
+                            vy: -Math.random() * 12 - 4,
+                            size: Math.random() * 7 + 4,
+                            color: colors[Math.floor(Math.random() * colors.length)],
+                            rotation: Math.random() * 360,
+                            vRot: (Math.random() - 0.5) * 12,
+                            opacity: 1,
+                            shape: Math.random() > 0.4 ? 'rect' : 'circle'
+                        });
+                    }
+
+                    let startTime = performance.now();
+                    const duration = 2200;
+
+                    const frame = (now) => {
+                        const elapsed = now - startTime;
+                        const progress = elapsed / duration;
+
+                        if (progress >= 1) {
+                            ctx.clearRect(0, 0, width, height);
+                            canvas.style.display = 'none';
+                            this._confettiRaf = null;
+                            return;
+                        }
+
+                        ctx.clearRect(0, 0, width, height);
+
+                        for (let p of particles) {
+                            p.x += p.vx;
+                            p.y += p.vy;
+                            p.vy += 0.38;
+                            p.vx *= 0.98;
+                            p.rotation += p.vRot;
+                            p.opacity = Math.max(0, 1 - progress * 1.15);
+
+                            ctx.save();
+                            ctx.translate(p.x, p.y);
+                            ctx.rotate((p.rotation * Math.PI) / 180);
+                            ctx.globalAlpha = p.opacity;
+                            ctx.fillStyle = p.color;
+
+                            if (p.shape === 'circle') {
+                                ctx.beginPath();
+                                ctx.arc(0, 0, p.size * 0.5, 0, Math.PI * 2);
+                                ctx.fill();
+                            } else {
+                                ctx.fillRect(-p.size * 0.5, -p.size * 0.3, p.size, p.size * 0.6);
+                            }
+                            ctx.restore();
+                        }
+
+                        this._confettiRaf = requestAnimationFrame(frame);
+                    };
+
+                    this._confettiRaf = requestAnimationFrame(frame);
                 },
 
                 shareReceiptWA(trx) {
@@ -3167,11 +4266,17 @@
 
                 // PRODUK
                 get filteredProducts() { 
+                    const term = (this.productSearch || '').toLowerCase().trim();
                     return this.products
                         .filter(p => {
-                            const term = this.productSearch.toLowerCase();
-                            const matchesSearch = p.name.toLowerCase().includes(term) || (p.barcode && p.barcode.toLowerCase().includes(term)) || String(p.id).toLowerCase().includes(term);
+                            const matchesSearch = !term || 
+                                p.name.toLowerCase().includes(term) || 
+                                (p.barcode && p.barcode.toLowerCase().includes(term)) || 
+                                String(p.id).toLowerCase().includes(term) ||
+                                (p.category && p.category.toLowerCase().includes(term));
                             if (!matchesSearch) return false;
+                            if (this.productCategoryFilter && p.category !== this.productCategoryFilter) return false;
+                            if (this.productFilterStock === 'available') return p.stock >= 5;
                             if (this.productFilterStock === 'low') return p.stock > 0 && p.stock < 5;
                             if (this.productFilterStock === 'empty') return p.stock <= 0;
                             return true;
@@ -3183,6 +4288,17 @@
                             if (this.productSortBy === 'stock_desc') return b.stock - a.stock;
                             return a.name.localeCompare(b.name);
                         });
+                },
+                get filteredCategories() {
+                    const q = (this.categorySearch || '').toLowerCase().trim();
+                    if (!q) return this.categories;
+                    return this.categories.filter(c => c.name.toLowerCase().includes(q));
+                },
+                getCategoryProductCount(catName) {
+                    return this.products.filter(p => p.category === catName).length;
+                },
+                get totalInventoryValue() {
+                    return this.products.reduce((sum, p) => sum + ((Number(p.buyPrice) || 0) * (Number(p.stock) || 0)), 0);
                 },
                 openProductModal() { this.isEditMode = false; this.imageCompressionInfo = null; this.isCompressingImage = false; this.productForm = { id: 'P'+Date.now().toString().slice(-4), name:'', barcode:'', category:this.categories[0]?.name||'', buyPrice:0, sellPrice:0, stock:10, unit:'Pcs', image:'' }; this.isProductModalOpen = true; this.refreshIcons(); },
                 editProduct(p) { this.isEditMode = true; this.imageCompressionInfo = null; this.isCompressingImage = false; this.productForm = { barcode:'', ...p }; this.isProductModalOpen = true; this.refreshIcons(); },
@@ -3238,15 +4354,63 @@
                 editCategory(c) { this.isCategoryEditMode = true; this.categoryForm = {...c}; this.isCategoryModalOpen = true; this.refreshIcons(); },
                 saveCategory() {
                     if(!this.categoryForm.name) return;
-                    if(this.isCategoryEditMode) { const idx = this.categories.findIndex(c => c.id === this.categoryForm.id); if (idx !== -1) this.categories[idx] = {...this.categoryForm}; }
-                    else { this.categoryForm.id = Date.now(); this.categories.push({...this.categoryForm}); }
-                    this.syncToGas('categories', this.categoryForm.id, this.categoryForm); this.saveLocalStorage(); this.isCategoryModalOpen = false; this.showToast('Kategori disimpan.');
+                    if(this.isCategoryEditMode) { 
+                        const idx = this.categories.findIndex(c => c.id === this.categoryForm.id); 
+                        if (idx !== -1) {
+                            const oldName = this.categories[idx].name;
+                            const newName = this.categoryForm.name.trim();
+                            this.categories[idx] = {...this.categoryForm, name: newName}; 
+                            if (oldName !== newName) {
+                                this.products.forEach(p => {
+                                    if (p.category === oldName) p.category = newName;
+                                });
+                                if (this.productCategoryFilter === oldName) {
+                                    this.productCategoryFilter = newName;
+                                }
+                            }
+                        }
+                    } else { 
+                        this.categoryForm.id = Date.now(); 
+                        this.categoryForm.name = this.categoryForm.name.trim();
+                        this.categories.push({...this.categoryForm}); 
+                    }
+                    this.syncToGas('categories', this.categoryForm.id, this.categoryForm); 
+                    this.saveLocalStorage(); 
+                    this.isCategoryModalOpen = false; 
+                    this.showToast('Kategori disimpan.');
                     this.refreshIcons();
                 },
-                confirmDeleteCategory(id) { this.openConfirm('Hapus Kategori', 'Yakin menghapus kategori ini?', () => { this.categories = this.categories.filter(c => c.id !== id); this.deleteFromGas('categories', id); this.saveLocalStorage(); this.showToast('Kategori dihapus.');}); },
+                confirmDeleteCategory(id) { 
+                    const cat = this.categories.find(c => c.id === id);
+                    const prodCount = cat ? this.getCategoryProductCount(cat.name) : 0;
+                    const warning = prodCount > 0 
+                        ? `Kategori "${cat.name}" memiliki ${prodCount} produk terkait. Produk tidak dihapus, kategorinya akan dialihkan ke 'Umum'. Lanjutkan?` 
+                        : `Yakin menghapus kategori "${cat?.name || ''}"?`;
+                    this.openConfirm('Hapus Kategori', warning, () => { 
+                        if (cat) {
+                            this.products.forEach(p => {
+                                if (p.category === cat.name) p.category = 'Umum';
+                            });
+                            if (this.productCategoryFilter === cat.name) {
+                                this.productCategoryFilter = '';
+                            }
+                        }
+                        this.categories = this.categories.filter(c => c.id !== id); 
+                        this.deleteFromGas('categories', id); 
+                        this.saveLocalStorage(); 
+                        this.showToast('Kategori dihapus.');
+                        this.refreshIcons();
+                    }); 
+                },
 
                 // STOK 
-                openStockModal() { if (this.currentUser.role !== 'admin') return this.showToast('Hanya Admin yang dapat mengelola stok.'); this.stockForm = { productId: this.products[0]?.id || '', type: 'IN', qty: 1, note: '' }; this.isStockModalOpen = true; this.refreshIcons(); },
+                openStockModal(prodOrId) { 
+                    if (this.currentUser.role !== 'admin') return this.showToast('Hanya Admin yang dapat mengelola stok.'); 
+                    const pId = typeof prodOrId === 'object' ? (prodOrId?.id || '') : (prodOrId || this.products[0]?.id || '');
+                    this.stockForm = { productId: pId || (this.products[0]?.id || ''), type: 'IN', qty: 1, note: '' }; 
+                    this.isStockModalOpen = true; 
+                    this.refreshIcons(); 
+                },
                 saveStockAdjustment() {
                     const p = this.products.find(x => x.id === this.stockForm.productId);
                     if(!p || this.stockForm.qty <= 0) return this.showToast('Pilih produk & jumlah valid!');
@@ -4424,6 +5588,7 @@
                         this.refreshIcons();
                     }
                 },
+                _themeSyncTimer: null,
                 setTheme(key) {
                     const t = this.themeOptions.find(x => x.key === key) || this.themeOptions[0];
                     this.settings.theme = t.key;
@@ -4431,15 +5596,22 @@
                     document.documentElement.style.setProperty('--app-primary', t.color);
                     document.documentElement.style.setProperty('--app-primary-dark', t.dark);
                     document.documentElement.style.setProperty('--app-soft', t.soft);
-                    this.saveLocalStorage(true);
-                    this.syncToGas('settings', 'store', this.settings);
-                    this.showToast('Warna tampilan diubah ke ' + t.name + '.');
+                    document.documentElement.style.setProperty('--app-text', t.textColor || t.color);
+                    document.documentElement.style.setProperty('--app-contrast', t.contrast || '#ffffff');
+                    this.saveLocalStorage(false);
+                    if (this._themeSyncTimer) clearTimeout(this._themeSyncTimer);
+                    this._themeSyncTimer = setTimeout(() => {
+                        this.syncToServer('settings', 'store', this.settings);
+                        this.syncToGas('settings', 'store', this.settings);
+                    }, 1000);
                 },
                 applyTheme() {
                     const t = this.themeOptions.find(x => x.key === this.settings.theme) || this.themeOptions[0];
                     document.documentElement.style.setProperty('--app-primary', t.color);
                     document.documentElement.style.setProperty('--app-primary-dark', t.dark);
                     document.documentElement.style.setProperty('--app-soft', t.soft);
+                    document.documentElement.style.setProperty('--app-text', t.textColor || t.color);
+                    document.documentElement.style.setProperty('--app-contrast', t.contrast || '#ffffff');
                 },
                 async saveSettings() {
                     this.isSavingSettings = true;
